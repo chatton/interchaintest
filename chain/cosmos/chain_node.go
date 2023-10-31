@@ -476,8 +476,11 @@ func (tn *ChainNode) ExecTx(ctx context.Context, keyName string, command ...stri
 	tn.lock.Lock()
 	defer tn.lock.Unlock()
 
-	stdout, _, err := tn.Exec(ctx, tn.TxCommand(keyName, command...), nil)
+	stdout, stderr, err := tn.Exec(ctx, tn.TxCommand(keyName, command...), nil)
+	tn.logger().Info("STDOUT: " + string(stdout))
+	tn.logger().Info("STDERR: " + string(stderr))
 	if err != nil {
+		tn.logger().Info("ERR: " + err.Error())
 		return "", err
 	}
 	output := CosmosTx{}

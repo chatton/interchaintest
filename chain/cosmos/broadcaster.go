@@ -16,6 +16,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/tx/signing"
 	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	"github.com/pkg/errors"
 	"github.com/strangelove-ventures/interchaintest/v8/internal/dockerutil"
 	"github.com/strangelove-ventures/interchaintest/v8/testutil"
 )
@@ -230,16 +231,26 @@ func BroadcastTx(ctx context.Context, broadcaster *Broadcaster, broadcastingUser
 // getFullyPopulatedResponse returns a fully populated sdk.TxResponse.
 // the QueryTx function is periodically called until a tx with the given hash
 // has been included in a block.
+// getFullyPopulatedResponse returns a fully populated sdk.TxResponse.
+// the QueryTx function is periodically called until a tx with the given hash
+// has been included in a block.
 func getFullyPopulatedResponse(cc client.Context, txHash string) (sdk.TxResponse, error) {
 	var resp sdk.TxResponse
+	var msg string
 	err := testutil.WaitForCondition(time.Second*60, time.Second*5, func() (bool, error) {
 		fullyPopulatedTxResp, err := authtx.QueryTx(cc, txHash)
 		if err != nil {
+			msg = err.Error()
 			return false, nil
 		}
 
 		resp = *fullyPopulatedTxResp
 		return true, nil
 	})
+
+	if err != nil && msg != "" {
+		return resp, errors.Wrap(err, msg)
+	}
+
 	return resp, err
 }
