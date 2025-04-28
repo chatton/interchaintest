@@ -9,7 +9,7 @@ import (
 
 	_ "embed"
 
-	interchaintest "github.com/strangelove-ventures/interchaintest/v8"
+	interchaintest "github.com/chatton/interchaintest/v1"
 )
 
 // Embed the matrix files as strings since they aren't intended to be changed.

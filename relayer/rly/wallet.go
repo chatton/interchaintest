@@ -1,7 +1,7 @@
 package rly
 
 import (
-	"github.com/strangelove-ventures/interchaintest/v8/ibc"
+	"github.com/chatton/interchaintest/v1/ibc"
 )
 
 var _ ibc.Wallet = &RlyWallet{}

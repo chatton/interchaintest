@@ -16,8 +16,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/tx/signing"
 	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
 
-	"github.com/strangelove-ventures/interchaintest/v8/dockerutil"
-	"github.com/strangelove-ventures/interchaintest/v8/testutil"
+	"github.com/chatton/interchaintest/v1/dockerutil"
+	"github.com/chatton/interchaintest/v1/testutil"
 )
 
 type ClientContextOpt func(clientContext client.Context) client.Context

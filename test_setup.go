@@ -9,9 +9,9 @@ import (
 
 	"github.com/moby/moby/client"
 
-	"github.com/strangelove-ventures/interchaintest/v8/dockerutil"
-	"github.com/strangelove-ventures/interchaintest/v8/ibc"
-	"github.com/strangelove-ventures/interchaintest/v8/testreporter"
+	"github.com/chatton/interchaintest/v1/dockerutil"
+	"github.com/chatton/interchaintest/v1/ibc"
+	"github.com/chatton/interchaintest/v1/testreporter"
 )
 
 const (

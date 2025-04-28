@@ -10,9 +10,9 @@ import (
 
 	"cosmossdk.io/math"
 
-	"github.com/strangelove-ventures/interchaintest/v8/dockerutil"
-	"github.com/strangelove-ventures/interchaintest/v8/ibc"
-	"github.com/strangelove-ventures/interchaintest/v8/testutil"
+	"github.com/chatton/interchaintest/v1/dockerutil"
+	"github.com/chatton/interchaintest/v1/ibc"
+	"github.com/chatton/interchaintest/v1/testutil"
 )
 
 // GetAndFundTestUserWithMnemonic restores a user using the given mnemonic
@@ -38,13 +38,6 @@ func GetAndFundTestUserWithMnemonic(
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get funds from faucet: %w", err)
-	}
-
-	// If this chain is an instance of Penumbra we need to initialize a new pclientd instance for the
-	// newly created test user account.
-	err = CreatePenumbraClient(ctx, chain, keyName)
-	if err != nil {
-		return nil, err
 	}
 
 	return user, nil

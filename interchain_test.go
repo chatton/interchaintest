@@ -22,12 +22,12 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	"github.com/strangelove-ventures/interchaintest/v8"
-	"github.com/strangelove-ventures/interchaintest/v8/chain/cosmos"
-	"github.com/strangelove-ventures/interchaintest/v8/ibc"
-	"github.com/strangelove-ventures/interchaintest/v8/relayer/rly"
-	"github.com/strangelove-ventures/interchaintest/v8/testreporter"
-	"github.com/strangelove-ventures/interchaintest/v8/testutil"
+	"github.com/chatton/interchaintest/v1"
+	"github.com/chatton/interchaintest/v1/chain/cosmos"
+	"github.com/chatton/interchaintest/v1/ibc"
+	"github.com/chatton/interchaintest/v1/relayer/rly"
+	"github.com/chatton/interchaintest/v1/testreporter"
+	"github.com/chatton/interchaintest/v1/testutil"
 )
 
 var (

@@ -16,9 +16,9 @@ import (
 	"github.com/moby/moby/pkg/stdcopy"
 	"go.uber.org/zap"
 
-	"github.com/strangelove-ventures/interchaintest/v8/dockerutil"
-	"github.com/strangelove-ventures/interchaintest/v8/ibc"
-	"github.com/strangelove-ventures/interchaintest/v8/testutil"
+	"github.com/chatton/interchaintest/v1/dockerutil"
+	"github.com/chatton/interchaintest/v1/ibc"
+	"github.com/chatton/interchaintest/v1/testutil"
 )
 
 const (

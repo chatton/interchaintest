@@ -27,8 +27,6 @@ import (
 	paramsclient "github.com/cosmos/cosmos-sdk/x/params/client"
 	"github.com/cosmos/cosmos-sdk/x/slashing"
 	"github.com/cosmos/cosmos-sdk/x/staking"
-
-	ibcwasm "github.com/strangelove-ventures/interchaintest/v8/chain/cosmos/08-wasm-types"
 )
 
 func DefaultEncoding() testutil.TestEncodingConfig {
@@ -52,7 +50,6 @@ func DefaultEncoding() testutil.TestEncodingConfig {
 		transfer.AppModuleBasic{},
 		ibccore.AppModuleBasic{},
 		ibctm.AppModuleBasic{},
-		ibcwasm.AppModuleBasic{},
 		ccvprovider.AppModuleBasic{},
 	)
 }

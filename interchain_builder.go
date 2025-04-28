@@ -11,10 +11,10 @@ import (
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/types/module/testutil"
 
-	"github.com/strangelove-ventures/interchaintest/v8/chain/cosmos"
-	"github.com/strangelove-ventures/interchaintest/v8/ibc"
-	"github.com/strangelove-ventures/interchaintest/v8/relayer"
-	"github.com/strangelove-ventures/interchaintest/v8/testreporter"
+	"github.com/chatton/interchaintest/v1/chain/cosmos"
+	"github.com/chatton/interchaintest/v1/ibc"
+	"github.com/chatton/interchaintest/v1/relayer"
+	"github.com/chatton/interchaintest/v1/testreporter"
 )
 
 type codecRegistry func(registry codectypes.InterfaceRegistry)

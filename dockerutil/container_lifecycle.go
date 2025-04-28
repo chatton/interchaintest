@@ -17,7 +17,7 @@ import (
 	"github.com/moby/moby/errdefs"
 	"go.uber.org/zap"
 
-	"github.com/strangelove-ventures/interchaintest/v8/ibc"
+	"github.com/chatton/interchaintest/v1/ibc"
 )
 
 // Example Go/Cosmos-SDK panic format is `panic: bad Duration: time: invalid duration "bad"\n`.

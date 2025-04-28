@@ -13,8 +13,8 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 
-	"github.com/strangelove-ventures/interchaintest/v8/ibc"
-	"github.com/strangelove-ventures/interchaintest/v8/relayer"
+	"github.com/chatton/interchaintest/v1/ibc"
+	"github.com/chatton/interchaintest/v1/relayer"
 )
 
 const (

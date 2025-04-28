@@ -47,10 +47,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/strangelove-ventures/interchaintest/v8"
-	"github.com/strangelove-ventures/interchaintest/v8/conformance"
-	"github.com/strangelove-ventures/interchaintest/v8/ibc"
-	"github.com/strangelove-ventures/interchaintest/v8/testreporter"
+	"github.com/chatton/interchaintest/v1"
+	"github.com/chatton/interchaintest/v1/conformance"
+	"github.com/chatton/interchaintest/v1/ibc"
+	"github.com/chatton/interchaintest/v1/testreporter"
 	"go.uber.org/zap/zaptest"
 )
 

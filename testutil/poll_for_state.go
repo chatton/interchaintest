@@ -8,7 +8,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 
-	"github.com/strangelove-ventures/interchaintest/v8/ibc"
+	"github.com/chatton/interchaintest/v1/ibc"
 )
 
 var ErrNotFound = errors.New("not found")

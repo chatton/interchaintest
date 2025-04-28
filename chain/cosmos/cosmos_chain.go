@@ -3,7 +3,6 @@ package cosmos
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -31,16 +30,13 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	paramsutils "github.com/cosmos/cosmos-sdk/x/params/client/utils"
 
-	"github.com/strangelove-ventures/interchaintest/v8/blockdb"
-	wasmtypes "github.com/strangelove-ventures/interchaintest/v8/chain/cosmos/08-wasm-types"
-	"github.com/strangelove-ventures/interchaintest/v8/chain/internal/tendermint"
-	"github.com/strangelove-ventures/interchaintest/v8/dockerutil"
-	"github.com/strangelove-ventures/interchaintest/v8/ibc"
-	"github.com/strangelove-ventures/interchaintest/v8/testutil"
+	"github.com/chatton/interchaintest/v1/blockdb"
+	"github.com/chatton/interchaintest/v1/chain/internal/tendermint"
+	"github.com/chatton/interchaintest/v1/dockerutil"
+	"github.com/chatton/interchaintest/v1/ibc"
+	"github.com/chatton/interchaintest/v1/testutil"
 )
 
 // CosmosChain is a local docker testnet for a Cosmos SDK chain.
@@ -433,36 +429,6 @@ func (c *CosmosChain) SendICATx(ctx context.Context, keyName, connectionID strin
 	registry := node.Chain.Config().EncodingConfig.InterfaceRegistry
 	encoding := "proto3"
 	return node.SendICATx(ctx, keyName, connectionID, registry, msgs, icaTxMemo, encoding)
-}
-
-// PushNewWasmClientProposal submits a new wasm client governance proposal to the chain.
-func (c *CosmosChain) PushNewWasmClientProposal(ctx context.Context, keyName string, fileName string, prop TxProposalv1) (TxProposal, string, error) {
-	tx := TxProposal{}
-	content, err := os.ReadFile(fileName)
-	if err != nil {
-		return tx, "", err
-	}
-	codeHashByte32 := sha256.Sum256(content)
-	codeHash := hex.EncodeToString(codeHashByte32[:])
-	content, err = testutil.GzipIt(content)
-	if err != nil {
-		return tx, "", err
-	}
-	message := wasmtypes.MsgStoreCode{
-		Signer:       sdk.MustBech32ifyAddressBytes(c.cfg.Bech32Prefix, authtypes.NewModuleAddress(govtypes.ModuleName)),
-		WasmByteCode: content,
-	}
-	msg, err := c.cfg.EncodingConfig.Codec.MarshalInterfaceJSON(&message)
-	if err != nil {
-		return tx, "", err
-	}
-	prop.Messages = append(prop.Messages, msg)
-	txHash, err := c.GetFullNode().SubmitProposal(ctx, keyName, prop)
-	if err != nil {
-		return tx, "", fmt.Errorf("failed to submit wasm client proposal: %w", err)
-	}
-	tx, err = c.txProposal(txHash)
-	return tx, codeHash, err
 }
 
 // UpgradeProposal submits a software-upgrade governance proposal to the chain.
