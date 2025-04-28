@@ -23,8 +23,8 @@ func NewGenesisKV(key string, value interface{}) GenesisKV {
 	}
 }
 
-func ModifyGenesis(genesisKV []GenesisKV) func(ibc.ChainConfig, []byte) ([]byte, error) {
-	return func(chainConfig ibc.ChainConfig, genbz []byte) ([]byte, error) {
+func ModifyGenesis(genesisKV []GenesisKV) func(ibc.Config, []byte) ([]byte, error) {
+	return func(chainConfig ibc.Config, genbz []byte) ([]byte, error) {
 		g := make(map[string]interface{})
 		if err := json.Unmarshal(genbz, &g); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal genesis file: %w", err)

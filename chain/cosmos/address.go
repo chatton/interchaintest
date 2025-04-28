@@ -10,7 +10,7 @@ import (
 
 // AccAddressFromBech32 creates an AccAddress from a Bech32 string.
 // https://github.com/cosmos/cosmos-sdk/blob/v0.50.2/types/address.go#L193-L212
-func (c *CosmosChain) AccAddressFromBech32(address string) (addr sdk.AccAddress, err error) {
+func (c *Chain) AccAddressFromBech32(address string) (addr sdk.AccAddress, err error) {
 	if len(strings.TrimSpace(address)) == 0 {
 		return sdk.AccAddress{}, errors.New("empty address string is not allowed")
 	}
@@ -25,9 +25,9 @@ func (c *CosmosChain) AccAddressFromBech32(address string) (addr sdk.AccAddress,
 		return nil, err
 	}
 
-	return sdk.AccAddress(bz), nil
+	return bz, nil
 }
 
-func (c *CosmosChain) AccAddressToBech32(addr sdk.AccAddress) (string, error) {
+func (c *Chain) AccAddressToBech32(addr sdk.AccAddress) (string, error) {
 	return bech32.ConvertAndEncode(c.Config().Bech32Prefix, addr)
 }

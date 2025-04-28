@@ -196,7 +196,7 @@ func (c commander) Flush(pathName, channelID, homeDir string) []string {
 	panic("flush implemented in hermes relayer not the commander")
 }
 
-func (c commander) ConfigContent(ctx context.Context, cfg ibc.ChainConfig, keyName, rpcAddr, grpcAddr string) ([]byte, error) {
+func (c commander) ConfigContent(ctx context.Context, cfg ibc.Config, keyName, rpcAddr, grpcAddr string) ([]byte, error) {
 	panic("config content implemented in hermes relayer not the commander")
 }
 

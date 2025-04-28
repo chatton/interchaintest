@@ -15,10 +15,10 @@ type CosmosWallet struct {
 	mnemonic string
 	address  []byte
 	keyName  string
-	chainCfg ibc.ChainConfig
+	chainCfg ibc.Config
 }
 
-func NewWallet(keyname string, address []byte, mnemonic string, chainCfg ibc.ChainConfig) ibc.Wallet {
+func NewWallet(keyname string, address []byte, mnemonic string, chainCfg ibc.Config) ibc.Wallet {
 	return &CosmosWallet{
 		mnemonic: mnemonic,
 		address:  address,

@@ -79,7 +79,7 @@ func Capabilities() map[relayer.Capability]bool {
 	return relayer.FullCapabilities()
 }
 
-func ChainConfigToCosmosRelayerChainConfig(chainConfig ibc.ChainConfig, keyName, rpcAddr, gprcAddr string) CosmosRelayerChainConfig {
+func ChainConfigToCosmosRelayerChainConfig(chainConfig ibc.Config, keyName, rpcAddr, gprcAddr string) CosmosRelayerChainConfig {
 	chainType := chainConfig.Type
 	if chainType == "polkadot" || chainType == "parachain" || chainType == "relaychain" {
 		chainType = "substrate"
@@ -327,7 +327,7 @@ func (commander) UpdateClients(pathName, homeDir string) []string {
 	}
 }
 
-func (commander) ConfigContent(ctx context.Context, cfg ibc.ChainConfig, keyName, rpcAddr, grpcAddr string) ([]byte, error) {
+func (commander) ConfigContent(ctx context.Context, cfg ibc.Config, keyName, rpcAddr, grpcAddr string) ([]byte, error) {
 	cosmosRelayerChainConfig := ChainConfigToCosmosRelayerChainConfig(cfg, keyName, rpcAddr, grpcAddr)
 	jsonBytes, err := json.Marshal(cosmosRelayerChainConfig)
 	if err != nil {

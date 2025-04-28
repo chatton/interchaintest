@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	dockerimagetypes "github.com/docker/docker/api/types/image"
-	"github.com/google/go-cmp/cmp"
 	"github.com/moby/moby/client"
 
 	"cosmossdk.io/math"
@@ -21,21 +20,13 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/module/testutil"
 )
 
-// Chain type constant values, used to determine if a ChainConfig is of a certain type.
+// Chain type constant values, used to determine if a Config is of a certain type.
 const (
-	Polkadot   = "polkadot"
-	Parachain  = "parachain"
-	RelayChain = "relaychain"
-	Cosmos     = "cosmos"
-	Penumbra   = "penumbra"
-	Ethereum   = "ethereum"
-	Thorchain  = "thorchain"
-	UTXO       = "utxo"
-	Namada     = "namada"
+	Cosmos = "cosmos"
 )
 
-// ChainConfig defines the chain parameters requires to run an interchaintest testnet for a chain.
-type ChainConfig struct {
+// Config defines the chain parameters requires to run an interchaintest testnet for a chain.
+type Config struct {
 	// Chain type, e.g. cosmos.
 	Type string `yaml:"type"`
 	// Chain name, e.g. cosmoshub.
@@ -71,7 +62,7 @@ type ChainConfig struct {
 	// When provided, will run before performing gentx and genesis file creation steps for validators.
 	PreGenesis func(Chain) error
 	// When provided, genesis file contents will be altered before sharing for genesis.
-	ModifyGenesis func(ChainConfig, []byte) ([]byte, error)
+	ModifyGenesis func(Config, []byte) ([]byte, error)
 	// Modify genesis-amounts for the validator at the given index
 	ModifyGenesisAmounts func(int) (sdk.Coin, sdk.Coin)
 	// Override config parameters for files at filepath.
@@ -80,13 +71,6 @@ type ChainConfig struct {
 	EncodingConfig *testutil.TestEncodingConfig
 	// Required when the chain requires the chain-id field to be populated for certain commands
 	UsingChainIDFlagCLI bool `yaml:"using-chain-id-flag-cli"`
-	// Configuration describing additional sidecar processes.
-	SidecarConfigs []SidecarConfig
-	// Configuration describing additional interchain security options.
-	InterchainSecurityConfig ICSConfig
-	// CoinDecimals for the chains base micro/nano/atto token configuration.
-	CoinDecimals *int64
-	// HostPortOverride exposes ports to the host.
 	// To avoid port binding conflicts, ports are only exposed on the 0th validator.
 	HostPortOverride map[int]int `yaml:"host-port-override"`
 	// ExposeAdditionalPorts exposes each port id to the host on a random port. ex: "8080/tcp"
@@ -102,25 +86,16 @@ type ChainConfig struct {
 	Genesis *GenesisConfig
 }
 
-func (c ChainConfig) Clone() ChainConfig {
+func (c Config) Clone() Config {
 	x := c
 
 	images := make([]DockerImage, len(c.Images))
 	copy(images, c.Images)
 	x.Images = images
 
-	sidecars := make([]SidecarConfig, len(c.SidecarConfigs))
-	copy(sidecars, c.SidecarConfigs)
-	x.SidecarConfigs = sidecars
-
 	additionalPorts := make([]string, len(c.ExposeAdditionalPorts))
 	copy(additionalPorts, c.ExposeAdditionalPorts)
 	x.ExposeAdditionalPorts = additionalPorts
-
-	if c.CoinDecimals != nil {
-		coinDecimals := *c.CoinDecimals
-		x.CoinDecimals = &coinDecimals
-	}
 
 	if c.Genesis != nil {
 		genesis := *c.Genesis
@@ -130,13 +105,13 @@ func (c ChainConfig) Clone() ChainConfig {
 	return x
 }
 
-func (c ChainConfig) UsesCometMock() bool {
+func (c Config) UsesCometMock() bool {
 	img := c.CometMock.Image
 	return img.Repository != "" && img.Version != ""
 }
 
-func (c ChainConfig) VerifyCoinType() (string, error) {
-	// If coin-type is left blank in the ChainConfig,
+func (c Config) VerifyCoinType() (string, error) {
+	// If coin-type is left blank in the Config,
 	// the Cosmos SDK default of 118 is used.
 	if c.CoinType == "" {
 		typ := reflect.TypeOf(c)
@@ -156,7 +131,7 @@ func (c ChainConfig) VerifyCoinType() (string, error) {
 	}
 }
 
-func (c ChainConfig) MergeChainSpecConfig(other ChainConfig) ChainConfig {
+func (c Config) MergeChainSpecConfig(other Config) Config {
 	// Make several in-place modifications to c,
 	// which is a value, not a reference,
 	// and return the updated copy.
@@ -233,13 +208,6 @@ func (c ChainConfig) MergeChainSpecConfig(other ChainConfig) ChainConfig {
 		c.EncodingConfig = other.EncodingConfig
 	}
 
-	if len(other.SidecarConfigs) > 0 {
-		c.SidecarConfigs = append([]SidecarConfig(nil), other.SidecarConfigs...)
-	}
-
-	if other.CoinDecimals != nil {
-		c.CoinDecimals = other.CoinDecimals
-	}
 	if other.AdditionalStartArgs != nil {
 		c.AdditionalStartArgs = append(c.AdditionalStartArgs, other.AdditionalStartArgs...)
 	}
@@ -252,10 +220,6 @@ func (c ChainConfig) MergeChainSpecConfig(other ChainConfig) ChainConfig {
 		c.ExposeAdditionalPorts = append(c.ExposeAdditionalPorts, other.ExposeAdditionalPorts...)
 	}
 
-	if !cmp.Equal(other.InterchainSecurityConfig, ICSConfig{}) {
-		c.InterchainSecurityConfig = other.InterchainSecurityConfig
-	}
-
 	if other.Genesis != nil {
 		c.Genesis = other.Genesis
 	}
@@ -264,7 +228,7 @@ func (c ChainConfig) MergeChainSpecConfig(other ChainConfig) ChainConfig {
 }
 
 // WithCodeCoverage enables Go Code Coverage from the chain node directory.
-func (c *ChainConfig) WithCodeCoverage(override ...string) {
+func (c *Config) WithCodeCoverage(override ...string) {
 	c.Env = append(c.Env, fmt.Sprintf("GOCOVERDIR=%s", path.Join("/var/cosmos-chain", c.Name)))
 	if len(override) > 0 {
 		c.Env = append(c.Env, override[0])
@@ -274,7 +238,7 @@ func (c *ChainConfig) WithCodeCoverage(override ...string) {
 // IsFullyConfigured reports whether all required fields have been set on c.
 // It is possible for some fields, such as GasAdjustment and NoHostMount,
 // to be their respective zero values and for IsFullyConfigured to still report true.
-func (c ChainConfig) IsFullyConfigured() bool {
+func (c Config) IsFullyConfigured() bool {
 	for _, image := range c.Images {
 		if !image.IsFullyConfigured() {
 			return false

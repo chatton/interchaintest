@@ -308,7 +308,7 @@ func (ic *Interchain) Build(ctx context.Context, rep *testreporter.RelayerExecRe
 	// Consumer chains need to have the same number of validators as their provider.
 	// Consumer also needs reference to its provider chain.
 	for _, providerConsumerLink := range ic.providerConsumerLinks {
-		provider, consumer := providerConsumerLink.provider.(*cosmos.CosmosChain), providerConsumerLink.consumer.(*cosmos.CosmosChain)
+		provider, consumer := providerConsumerLink.provider.(*cosmos.Chain), providerConsumerLink.consumer.(*cosmos.Chain)
 		consumer.NumValidators = provider.NumValidators
 		consumer.Provider = provider
 		provider.Consumers = append(provider.Consumers, consumer)

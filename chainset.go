@@ -108,13 +108,13 @@ func (cs *chainSet) Start(ctx context.Context, testName string, additionalGenesi
 	eg, egCtx := errgroup.WithContext(ctx)
 
 	for c := range cs.chains {
-		if cosmosChain, ok := c.(*cosmos.CosmosChain); ok && cosmosChain.Provider != nil {
+		if cosmosChain, ok := c.(*cosmos.Chain); ok && cosmosChain.Provider != nil {
 			// wait for provider chains to be started up first
 			continue
 		}
 		eg.Go(func() error {
 			chainCfg := c.Config()
-			if cosmosChain, ok := c.(*cosmos.CosmosChain); ok {
+			if cosmosChain, ok := c.(*cosmos.Chain); ok {
 				if len(cosmosChain.Consumers) > 0 {
 					// this is a provider chain
 					if err := cosmosChain.StartProvider(testName, egCtx, additionalGenesisWallets[c]...); err != nil {
@@ -140,7 +140,7 @@ func (cs *chainSet) Start(ctx context.Context, testName string, additionalGenesi
 
 	// Now startup any consumer chains
 	for c := range cs.chains {
-		if cosmosChain, ok := c.(*cosmos.CosmosChain); ok && cosmosChain.Provider != nil {
+		if cosmosChain, ok := c.(*cosmos.Chain); ok && cosmosChain.Provider != nil {
 			eg.Go(func() error {
 				// this is a consumer chain
 				if err := cosmosChain.StartConsumer(testName, egCtx, additionalGenesisWallets[c]...); err != nil {

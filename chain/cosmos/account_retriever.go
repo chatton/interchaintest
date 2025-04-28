@@ -22,7 +22,7 @@ var (
 // AccountRetriever defines the properties of a type that can be used to
 // retrieve accounts.
 type AccountRetriever struct {
-	chain *CosmosChain
+	chain *Chain
 }
 
 // GetAccount queries for an account given an address and a block height. An

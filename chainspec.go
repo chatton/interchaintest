@@ -12,7 +12,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// ChainSpec is a wrapper around an ibc.ChainConfig
+// ChainSpec is a wrapper around an ibc.Config
 // that allows callers to easily reference one of the built-in chain configs
 // and optionally provide overrides for some settings.
 type ChainSpec struct {
@@ -20,7 +20,7 @@ type ChainSpec struct {
 	// Required unless every other field is set.
 	Name string
 
-	// ChainName sets the Name of the embedded ibc.ChainConfig, i.e. the name of the chain.
+	// ChainName sets the Name of the embedded ibc.Config, i.e. the name of the chain.
 	ChainName string
 
 	// Version of the docker image to use.
@@ -31,8 +31,8 @@ type ChainSpec struct {
 	// so zero-overrides can be detected from omitted overrides.
 	NoHostMount *bool
 
-	// Embedded ChainConfig to allow for simple JSON definition of a ChainSpec.
-	ibc.ChainConfig
+	// Embedded Config to allow for simple JSON definition of a ChainSpec.
+	ibc.Config
 
 	// How many validators and how many full nodes to use
 	// when instantiating the chain.
@@ -44,46 +44,46 @@ type ChainSpec struct {
 	autoSuffix     string
 }
 
-// Config returns the underlying ChainConfig,
+// GetConfig returns the underlying Config,
 // with any overrides applied.
-func (s *ChainSpec) Config(log *zap.Logger) (*ibc.ChainConfig, error) {
+func (s *ChainSpec) GetConfig(log *zap.Logger) (*ibc.Config, error) {
 	if s.Version == "" {
 		// Version must be set at top-level if not set in inlined config.
-		if len(s.ChainConfig.Images) == 0 || s.ChainConfig.Images[0].Version == "" {
+		if len(s.Config.Images) == 0 || s.Config.Images[0].Version == "" {
 			return nil, errors.New("ChainSpec.Version must not be empty")
 		}
 	}
 
-	if len(s.ChainConfig.Images) > 0 {
-		for i, image := range s.ChainConfig.Images {
+	if len(s.Config.Images) > 0 {
+		for i, image := range s.Config.Images {
 			if err := image.Validate(); err != nil {
-				return nil, fmt.Errorf("ChainConfig.Images[%d] is invalid: %s", i, err)
+				return nil, fmt.Errorf("Config.Images[%d] is invalid: %s", i, err)
 			}
 		}
 	}
 
 	if len(s.ExposeAdditionalPorts) > 0 {
-		s.ChainConfig.ExposeAdditionalPorts = append(s.ChainConfig.ExposeAdditionalPorts, s.ExposeAdditionalPorts...)
+		s.Config.ExposeAdditionalPorts = append(s.Config.ExposeAdditionalPorts, s.ExposeAdditionalPorts...)
 	}
 
 	// s.Name and chainConfig.Name are interchangeable
-	if s.Name == "" && s.ChainConfig.Name != "" {
-		s.Name = s.ChainConfig.Name
-	} else if s.Name != "" && s.ChainConfig.Name == "" {
-		s.ChainConfig.Name = s.Name
+	if s.Name == "" && s.Config.Name != "" {
+		s.Name = s.Config.Name
+	} else if s.Name != "" && s.Config.Name == "" {
+		s.Config.Name = s.Name
 	}
 
 	// Empty name is only valid with a fully defined chain config.
 	if s.Name == "" {
-		// If ChainName is provided and ChainConfig.Name is not set, set it.
-		if s.ChainConfig.Name == "" && s.ChainName != "" {
-			s.ChainConfig.Name = s.ChainName
+		// If ChainName is provided and Config.Name is not set, set it.
+		if s.Config.Name == "" && s.ChainName != "" {
+			s.Config.Name = s.ChainName
 		}
-		if !s.ChainConfig.IsFullyConfigured() {
+		if !s.Config.IsFullyConfigured() {
 			return nil, errors.New("ChainSpec.Name required when not all config fields are set")
 		}
 
-		return s.applyConfigOverrides(s.ChainConfig)
+		return s.applyConfigOverrides(s.Config)
 	}
 
 	builtinChainConfigs, err := initBuiltinChainConfig(log)
@@ -95,7 +95,7 @@ func (s *ChainSpec) Config(log *zap.Logger) (*ibc.ChainConfig, error) {
 	// If chain doesn't have built in config, but is fully configured, register chain label.
 	cfg, ok := builtinChainConfigs[s.Name]
 	if !ok {
-		if !s.ChainConfig.IsFullyConfigured() {
+		if !s.Config.IsFullyConfigured() {
 			availableChains := make([]string, 0, len(builtinChainConfigs))
 			for k := range builtinChainConfigs {
 				availableChains = append(availableChains, k)
@@ -104,13 +104,13 @@ func (s *ChainSpec) Config(log *zap.Logger) (*ibc.ChainConfig, error) {
 
 			return nil, fmt.Errorf("no chain configuration for %s (available chains are: %s)", s.Name, strings.Join(availableChains, ", "))
 		}
-		cfg = ibc.ChainConfig{}
+		cfg = ibc.Config{}
 	}
 
 	cfg = cfg.Clone()
 
 	// Apply any overrides from this ChainSpec.
-	cfg = cfg.MergeChainSpecConfig(s.ChainConfig)
+	cfg = cfg.MergeChainSpecConfig(s.Config)
 
 	coinType, err := cfg.VerifyCoinType()
 	if err != nil {
@@ -122,7 +122,7 @@ func (s *ChainSpec) Config(log *zap.Logger) (*ibc.ChainConfig, error) {
 	return s.applyConfigOverrides(cfg)
 }
 
-func (s *ChainSpec) applyConfigOverrides(cfg ibc.ChainConfig) (*ibc.ChainConfig, error) {
+func (s *ChainSpec) applyConfigOverrides(cfg ibc.Config) (*ibc.Config, error) {
 	// If no ChainName provided, generate one based on the spec name.
 	cfg.Name = s.ChainName
 	if cfg.Name == "" {
@@ -161,81 +161,14 @@ func (s *ChainSpec) applyConfigOverrides(cfg ibc.ChainConfig) (*ibc.ChainConfig,
 		cfg.Genesis = s.Genesis
 	}
 
-	cfg.UsingChainIDFlagCLI = s.UsingChainIDFlagCLI
-
-	if cfg.CoinDecimals == nil {
-		evm := int64(18)
-		cosmos := int64(6)
-		thorchain := int64(8)
-		bitcoin := int64(8)
-
-		switch cfg.CoinType {
-		case "0", "2", "3", "145":
-			cfg.CoinDecimals = &bitcoin
-		case "60":
-			cfg.CoinDecimals = &evm
-		case "118", "330", "529":
-			cfg.CoinDecimals = &cosmos
-		case "931":
-			cfg.CoinDecimals = &thorchain
-		}
-	}
-
 	// Set the version depending on the chain type.
 	switch cfg.Type {
-	case "cosmos", "namada":
+	case "cosmos":
 		if s.Version != "" && len(cfg.Images) > 0 {
 			cfg.Images[0].Version = s.Version
 		}
-	case "penumbra":
-		versionSplit := strings.Split(s.Version, ",")
-		if len(versionSplit) != 2 {
-			return nil, errors.New("penumbra version should be comma separated penumbra_version,tendermint_version")
-		}
-
-		if cfg.Images[0].Version == "" {
-			cfg.Images[0].Version = versionSplit[1]
-		}
-
-		if cfg.Images[1].Version == "" {
-			cfg.Images[1].Version = versionSplit[0]
-		}
-	case "polkadot":
-		// Only set if ChainSpec's Version is set, if not, Version from Images must be set.
-		if s.Version != "" {
-			versionSplit := strings.Split(s.Version, ",")
-			relayChainImageSplit := strings.Split(versionSplit[0], ":")
-			var relayChainVersion string
-			if len(relayChainImageSplit) > 1 {
-				if relayChainImageSplit[0] != "seunlanlege/centauri-polkadot" &&
-					relayChainImageSplit[0] != "polkadot" {
-					return nil, fmt.Errorf("only polkadot is supported as the relay chain node. got: %s", relayChainImageSplit[0])
-				}
-				relayChainVersion = relayChainImageSplit[1]
-			} else {
-				relayChainVersion = relayChainImageSplit[0]
-			}
-			cfg.Images[0].Version = relayChainVersion
-			switch {
-			case strings.Contains(s.Name, "composable"):
-				if len(versionSplit) != 2 {
-					return nil, fmt.Errorf("unexpected composable version: %s. should be comma separated polkadot:version,composable:version", s.Version)
-				}
-				imageSplit := strings.Split(versionSplit[1], ":")
-				if len(imageSplit) != 2 {
-					return nil, fmt.Errorf("parachain versions should be in the format parachain_name:parachain_version, got: %s", versionSplit[1])
-				}
-				if !strings.Contains(cfg.Images[1].Repository, imageSplit[0]) {
-					return nil, fmt.Errorf("unexpected parachain: %s", imageSplit[0])
-				}
-				cfg.Images[1].Version = imageSplit[1]
-			default:
-				return nil, fmt.Errorf("unexpected parachain: %s", s.Name)
-			}
-		} else if len(s.ChainConfig.Images) < 2 || s.ChainConfig.Images[1].Version == "" {
-			// Ensure there are at least two images and check the 2nd version is populated
-			return nil, fmt.Errorf("ChainCongfig.Images must be >1 and ChainConfig.Images[1].Version must not be empty")
-		}
+	default:
+		return nil, fmt.Errorf("unexpected error, unknown chain type: %s for chain: %s", cfg.Type, cfg.Name)
 	}
 
 	return &cfg, nil

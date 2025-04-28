@@ -28,7 +28,7 @@ func TestChainSpec_Config(t *testing.T) {
 			Name: "gaia",
 
 			Version: "v7.0.1",
-			ChainConfig: ibc.ChainConfig{
+			Config: ibc.Config{
 				Type: "cosmos",
 				// Skip Name, as that is intended to be inherited from ChainName.
 				ChainID: "mychain-123",
@@ -52,7 +52,7 @@ func TestChainSpec_Config(t *testing.T) {
 		s := interchaintest.ChainSpec{
 			ChainName: "mychain",
 
-			ChainConfig: ibc.ChainConfig{
+			Config: ibc.Config{
 				Type: "cosmos",
 				// Skip Name, as that is intended to be inherited from ChainName.
 				ChainID: "mychain-123",
@@ -126,7 +126,7 @@ func TestChainSpec_Config(t *testing.T) {
 			Version: "v7.0.1",
 
 			ChainName: "g",
-			ChainConfig: ibc.ChainConfig{
+			Config: ibc.Config{
 				ChainID: "g-0000",
 			},
 		}

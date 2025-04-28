@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"hash/fnv"
@@ -23,7 +22,6 @@ import (
 	dockerclient "github.com/moby/moby/client"
 	"go.uber.org/zap"
 	"golang.org/x/mod/semver"
-	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
@@ -43,10 +41,8 @@ import (
 	"github.com/cometbft/cometbft/p2p"
 	rpcclient "github.com/cometbft/cometbft/rpc/client"
 	rpchttp "github.com/cometbft/cometbft/rpc/client/http"
-	coretypes "github.com/cometbft/cometbft/rpc/core/types"
 	libclient "github.com/cometbft/cometbft/rpc/jsonrpc/client"
 
-	"github.com/chatton/interchaintest/v1/blockdb"
 	"github.com/chatton/interchaintest/v1/dockerutil"
 	"github.com/chatton/interchaintest/v1/ibc"
 	"github.com/chatton/interchaintest/v1/testutil"
@@ -82,7 +78,7 @@ type ChainNode struct {
 	cometHostname string
 }
 
-func NewChainNode(log *zap.Logger, validator bool, chain *CosmosChain, dockerClient *dockerclient.Client, networkID string, testName string, image ibc.DockerImage, index int) *ChainNode {
+func NewChainNode(log *zap.Logger, validator bool, chain *Chain, dockerClient *dockerclient.Client, networkID string, testName string, image ibc.DockerImage, index int) *ChainNode {
 	tn := &ChainNode{
 		log: log.With(
 			zap.Bool("validator", validator),
@@ -426,82 +422,6 @@ func (tn *ChainNode) Height(ctx context.Context) (int64, error) {
 	}
 	height := res.SyncInfo.LatestBlockHeight
 	return height, nil
-}
-
-// FindTxs implements blockdb.BlockSaver.
-func (tn *ChainNode) FindTxs(ctx context.Context, height int64) ([]blockdb.Tx, error) {
-	h := height
-	var eg errgroup.Group
-	var blockRes *coretypes.ResultBlockResults
-	var block *coretypes.ResultBlock
-	eg.Go(func() (err error) {
-		blockRes, err = tn.Client.BlockResults(ctx, &h)
-		return err
-	})
-	eg.Go(func() (err error) {
-		block, err = tn.Client.Block(ctx, &h)
-		return err
-	})
-	if err := eg.Wait(); err != nil {
-		return nil, err
-	}
-	interfaceRegistry := tn.Chain.Config().EncodingConfig.InterfaceRegistry
-	txs := make([]blockdb.Tx, 0, len(block.Block.Txs)+2)
-	for i, tx := range block.Block.Txs {
-		var newTx blockdb.Tx
-		newTx.Data = []byte(fmt.Sprintf(`{"data":"%s"}`, hex.EncodeToString(tx)))
-
-		sdkTx, err := decodeTX(interfaceRegistry, tx)
-		if err != nil {
-			tn.logger().Info("Failed to decode tx", zap.Int64("height", height), zap.Error(err))
-			continue
-		}
-		b, err := encodeTxToJSON(interfaceRegistry, sdkTx)
-		if err != nil {
-			tn.logger().Info("Failed to marshal tx to json", zap.Int64("height", height), zap.Error(err))
-			continue
-		}
-		newTx.Data = b
-
-		rTx := blockRes.TxsResults[i]
-
-		newTx.Events = make([]blockdb.Event, len(rTx.Events))
-		for j, e := range rTx.Events {
-			attrs := make([]blockdb.EventAttribute, len(e.Attributes))
-			for k, attr := range e.Attributes {
-				attrs[k] = blockdb.EventAttribute{
-					Key:   attr.Key,
-					Value: attr.Value,
-				}
-			}
-			newTx.Events[j] = blockdb.Event{
-				Type:       e.Type,
-				Attributes: attrs,
-			}
-		}
-		txs = append(txs, newTx)
-	}
-	if len(blockRes.FinalizeBlockEvents) > 0 {
-		finalizeBlockTx := blockdb.Tx{
-			Data: []byte(`{"data":"finalize_block","note":"this is a transaction artificially created for debugging purposes"}`),
-		}
-		finalizeBlockTx.Events = make([]blockdb.Event, len(blockRes.FinalizeBlockEvents))
-		for i, e := range blockRes.FinalizeBlockEvents {
-			attrs := make([]blockdb.EventAttribute, len(e.Attributes))
-			for j, attr := range e.Attributes {
-				attrs[j] = blockdb.EventAttribute{
-					Key:   attr.Key,
-					Value: attr.Value,
-				}
-			}
-			finalizeBlockTx.Events[i] = blockdb.Event{
-				Type:       e.Type,
-				Attributes: attrs,
-			}
-		}
-		txs = append(txs, finalizeBlockTx)
-	}
-	return txs, nil
 }
 
 // TxCommand is a helper to retrieve a full command for broadcasting a tx
@@ -1062,31 +982,21 @@ func (tn *ChainNode) ExportState(ctx context.Context, height int64) (string, err
 	defer tn.lock.Unlock()
 
 	var (
-		doc              = "state_export.json"
-		docPath          = path.Join(tn.HomeDir(), doc)
-		isNewerThanSdk47 = tn.IsAboveSDK47(ctx)
-		command          = []string{"export", "--height", fmt.Sprint(height), "--home", tn.HomeDir()}
+		doc     = "state_export.json"
+		docPath = path.Join(tn.HomeDir(), doc)
+		command = []string{"export", "--height", fmt.Sprint(height), "--home", tn.HomeDir(), "--output-document", docPath}
 	)
 
-	if isNewerThanSdk47 {
-		command = append(command, "--output-document", docPath)
-	}
-
-	stdout, stderr, err := tn.ExecBin(ctx, command...)
+	_, _, err := tn.ExecBin(ctx, command...)
 	if err != nil {
 		return "", err
 	}
 
-	if isNewerThanSdk47 {
-		content, err := tn.ReadFile(ctx, doc)
-		if err != nil {
-			return "", err
-		}
-		return string(content), nil
+	content, err := tn.ReadFile(ctx, doc)
+	if err != nil {
+		return "", err
 	}
-
-	// output comes to stderr on older versions
-	return string(stdout) + string(stderr), nil
+	return string(content), nil
 }
 
 func (tn *ChainNode) UnsafeResetAll(ctx context.Context) error {
@@ -1303,7 +1213,7 @@ func (tn *ChainNode) RemoveContainer(ctx context.Context) error {
 // InitValidatorFiles creates the node files and signs a genesis transaction.
 func (tn *ChainNode) InitValidatorGenTx(
 	ctx context.Context,
-	chainType *ibc.ChainConfig,
+	chainType *ibc.Config,
 	genesisAmounts []sdk.Coin,
 	genesisSelfDelegation sdk.Coin,
 ) error {
@@ -1500,7 +1410,7 @@ func (tn *ChainNode) SendICABankTransfer(ctx context.Context, connectionID, from
 }
 
 // GetHostAddress returns the host-accessible url for a port in the container.
-// This is useful for finding the url & random host port for ports exposed via ChainConfig.ExposeAdditionalPorts.
+// This is useful for finding the url & random host port for ports exposed via Config.ExposeAdditionalPorts.
 func (tn *ChainNode) GetHostAddress(ctx context.Context, portID string) (string, error) {
 	ports, err := tn.containerLifecycle.GetHostPorts(ctx, portID)
 	if err != nil {

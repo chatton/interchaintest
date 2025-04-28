@@ -11,7 +11,7 @@ import (
 )
 
 // AuthQueryAccount performs a query to get the account details of the specified address.
-func (c *CosmosChain) AuthQueryAccount(ctx context.Context, addr string) (*cdctypes.Any, error) {
+func (c *Chain) AuthQueryAccount(ctx context.Context, addr string) (*cdctypes.Any, error) {
 	res, err := authtypes.NewQueryClient(c.GetNode().GrpcConn).Account(ctx, &authtypes.QueryAccountRequest{
 		Address: addr,
 	})
@@ -19,13 +19,13 @@ func (c *CosmosChain) AuthQueryAccount(ctx context.Context, addr string) (*cdcty
 }
 
 // AuthQueryParams performs a query to get the auth module parameters.
-func (c *CosmosChain) AuthQueryParams(ctx context.Context) (*authtypes.Params, error) {
+func (c *Chain) AuthQueryParams(ctx context.Context) (*authtypes.Params, error) {
 	res, err := authtypes.NewQueryClient(c.GetNode().GrpcConn).Params(ctx, &authtypes.QueryParamsRequest{})
 	return &res.Params, err
 }
 
 // AuthQueryModuleAccounts performs a query to get the account details of all the chain modules.
-func (c *CosmosChain) AuthQueryModuleAccounts(ctx context.Context) ([]authtypes.ModuleAccount, error) {
+func (c *Chain) AuthQueryModuleAccounts(ctx context.Context) ([]authtypes.ModuleAccount, error) {
 	res, err := authtypes.NewQueryClient(c.GetNode().GrpcConn).ModuleAccounts(ctx, &authtypes.QueryModuleAccountsRequest{})
 
 	maccs := make([]authtypes.ModuleAccount, len(res.Accounts))
@@ -43,7 +43,7 @@ func (c *CosmosChain) AuthQueryModuleAccounts(ctx context.Context) ([]authtypes.
 }
 
 // AuthGetModuleAccount performs a query to get the account details of the specified chain module.
-func (c *CosmosChain) AuthQueryModuleAccount(ctx context.Context, moduleName string) (authtypes.ModuleAccount, error) {
+func (c *Chain) AuthQueryModuleAccount(ctx context.Context, moduleName string) (authtypes.ModuleAccount, error) {
 	res, err := authtypes.NewQueryClient(c.GetNode().GrpcConn).ModuleAccountByName(ctx, &authtypes.QueryModuleAccountByNameRequest{
 		Name: moduleName,
 	})
@@ -58,7 +58,7 @@ func (c *CosmosChain) AuthQueryModuleAccount(ctx context.Context, moduleName str
 }
 
 // GetModuleAddress performs a query to get the address of the specified chain module.
-func (c *CosmosChain) AuthQueryModuleAddress(ctx context.Context, moduleName string) (string, error) {
+func (c *Chain) AuthQueryModuleAddress(ctx context.Context, moduleName string) (string, error) {
 	queryRes, err := c.AuthQueryModuleAccount(ctx, moduleName)
 	if err != nil {
 		return "", err
@@ -67,23 +67,23 @@ func (c *CosmosChain) AuthQueryModuleAddress(ctx context.Context, moduleName str
 }
 
 // Deprecated: use AuthQueryModuleAddress instead.
-func (c *CosmosChain) GetModuleAddress(ctx context.Context, moduleName string) (string, error) {
+func (c *Chain) GetModuleAddress(ctx context.Context, moduleName string) (string, error) {
 	return c.AuthQueryModuleAddress(ctx, moduleName)
 }
 
 // GetGovernanceAddress performs a query to get the address of the chain's x/gov module
 // Deprecated: use AuthQueryModuleAddress(ctx, "gov") instead.
-func (c *CosmosChain) GetGovernanceAddress(ctx context.Context) (string, error) {
+func (c *Chain) GetGovernanceAddress(ctx context.Context) (string, error) {
 	return c.GetModuleAddress(ctx, "gov")
 }
 
-func (c *CosmosChain) AuthQueryBech32Prefix(ctx context.Context) (string, error) {
+func (c *Chain) AuthQueryBech32Prefix(ctx context.Context) (string, error) {
 	res, err := authtypes.NewQueryClient(c.GetNode().GrpcConn).Bech32Prefix(ctx, &authtypes.Bech32PrefixRequest{})
 	return res.Bech32Prefix, err
 }
 
 // AddressBytesToString converts a byte array address to a string.
-func (c *CosmosChain) AuthAddressBytesToString(ctx context.Context, addrBz []byte) (string, error) {
+func (c *Chain) AuthAddressBytesToString(ctx context.Context, addrBz []byte) (string, error) {
 	res, err := authtypes.NewQueryClient(c.GetNode().GrpcConn).AddressBytesToString(ctx, &authtypes.AddressBytesToStringRequest{
 		AddressBytes: addrBz,
 	})
@@ -91,7 +91,7 @@ func (c *CosmosChain) AuthAddressBytesToString(ctx context.Context, addrBz []byt
 }
 
 // AddressStringToBytes converts a string address to a byte array.
-func (c *CosmosChain) AuthAddressStringToBytes(ctx context.Context, addr string) ([]byte, error) {
+func (c *Chain) AuthAddressStringToBytes(ctx context.Context, addr string) ([]byte, error) {
 	res, err := authtypes.NewQueryClient(c.GetNode().GrpcConn).AddressStringToBytes(ctx, &authtypes.AddressStringToBytesRequest{
 		AddressString: addr,
 	})
@@ -99,14 +99,14 @@ func (c *CosmosChain) AuthAddressStringToBytes(ctx context.Context, addr string)
 }
 
 // AccountInfo queries the account information of the given address.
-func (c *CosmosChain) AuthQueryAccountInfo(ctx context.Context, addr string) (*authtypes.BaseAccount, error) {
+func (c *Chain) AuthQueryAccountInfo(ctx context.Context, addr string) (*authtypes.BaseAccount, error) {
 	res, err := authtypes.NewQueryClient(c.GetNode().GrpcConn).AccountInfo(ctx, &authtypes.QueryAccountInfoRequest{
 		Address: addr,
 	})
 	return res.Info, err
 }
 
-func (c *CosmosChain) AuthPrintAccountInfo(chain *CosmosChain, res *cdctypes.Any) error {
+func (c *Chain) AuthPrintAccountInfo(chain *Chain, res *cdctypes.Any) error {
 	switch res.TypeUrl {
 	case "/cosmos.auth.v1beta1.ModuleAccount":
 		var modAcc authtypes.ModuleAccount

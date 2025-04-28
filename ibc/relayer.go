@@ -24,7 +24,7 @@ import (
 // but the report will be missing details.
 type Relayer interface {
 	// restore a mnemonic to be used as a relayer wallet for a chain
-	RestoreKey(ctx context.Context, rep RelayerExecReporter, cfg ChainConfig, keyName, mnemonic string) error
+	RestoreKey(ctx context.Context, rep RelayerExecReporter, cfg Config, keyName, mnemonic string) error
 
 	// generate a new key
 	AddKey(ctx context.Context, rep RelayerExecReporter, chainID, keyName, coinType, signingAlgorithm string) (Wallet, error)
@@ -33,7 +33,7 @@ type Relayer interface {
 	GetWallet(chainID string) (Wallet, bool)
 
 	// add relayer configuration for a chain
-	AddChainConfiguration(ctx context.Context, rep RelayerExecReporter, chainConfig ChainConfig, keyName, rpcAddr, grpcAddr string) error
+	AddChainConfiguration(ctx context.Context, rep RelayerExecReporter, chainConfig Config, keyName, rpcAddr, grpcAddr string) error
 
 	// generate new path between two chains
 	GeneratePath(ctx context.Context, rep RelayerExecReporter, srcChainID, dstChainID, pathName string) error
@@ -107,85 +107,7 @@ type Relayer interface {
 
 	// Set the wasm client contract hash in the chain's config if the counterparty chain in a path used 08-wasm
 	// to instantiate the client.
-	SetClientContractHash(ctx context.Context, rep RelayerExecReporter, cfg ChainConfig, hash string) error
-}
-
-// GetTransferChannel will return the transfer channel assuming only one client,
-// one connection, and one channel with "transfer" port exists between two chains.
-func GetTransferChannel(ctx context.Context, r Relayer, rep RelayerExecReporter, srcChainID, dstChainID string) (*ChannelOutput, error) {
-	srcClients, err := r.GetClients(ctx, rep, srcChainID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get clients on source chain: %w", err)
-	}
-
-	if len(srcClients) == 0 {
-		return nil, fmt.Errorf("no clients exist on source chain: %w", err)
-	}
-
-	var srcClientID string
-	for _, client := range srcClients {
-		// TODO continue for expired clients
-		if client.ClientState.ChainID == dstChainID {
-			if srcClientID != "" {
-				return nil, fmt.Errorf("found multiple clients on %s tracking %s", srcChainID, dstChainID)
-			}
-			srcClientID = client.ClientID
-		}
-	}
-
-	if srcClientID == "" {
-		return nil, fmt.Errorf("unable to find client on %s tracking %s", srcChainID, dstChainID)
-	}
-
-	srcConnections, err := r.GetConnections(ctx, rep, srcChainID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get connections on source chain: %w", err)
-	}
-
-	if len(srcConnections) == 0 {
-		return nil, fmt.Errorf("no connections exist on source chain: %w", err)
-	}
-
-	var srcConnectionID string
-	for _, connection := range srcConnections {
-		if connection.ClientID == srcClientID {
-			if srcConnectionID != "" {
-				return nil, fmt.Errorf("found multiple connections on %s for client %s", srcChainID, srcClientID)
-			}
-			srcConnectionID = connection.ID
-		}
-	}
-
-	if srcConnectionID == "" {
-		return nil, fmt.Errorf("unable to find connection on %s for client %s", srcChainID, srcClientID)
-	}
-
-	srcChannels, err := r.GetChannels(ctx, rep, srcChainID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get channels on source chain: %w", err)
-	}
-
-	if len(srcChannels) == 0 {
-		return nil, fmt.Errorf("no channels exist on source chain: %w", err)
-	}
-
-	var srcChan *ChannelOutput
-	for _, channel := range srcChannels {
-		ch := channel
-
-		if len(ch.ConnectionHops) == 1 && ch.ConnectionHops[0] == srcConnectionID && ch.PortID == "transfer" {
-			if srcChan != nil {
-				return nil, fmt.Errorf("found multiple transfer channels on %s for connection %s", srcChainID, srcConnectionID)
-			}
-			srcChan = &ch
-		}
-	}
-
-	if srcChan == nil {
-		return nil, fmt.Errorf("no transfer channel found between chains: %s - %s", srcChainID, dstChainID)
-	}
-
-	return srcChan, nil
+	SetClientContractHash(ctx context.Context, rep RelayerExecReporter, cfg Config, hash string) error
 }
 
 // RelyaerExecResult holds the details of a call to Relayer.Exec.

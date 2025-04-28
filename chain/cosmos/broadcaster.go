@@ -36,8 +36,8 @@ type Broadcaster struct {
 	// of this directory are copied from the node container for the specific user.
 	keyrings map[User]keyring.Keyring
 
-	// chain is a reference to the CosmosChain instance which will be the target of the messages.
-	chain *CosmosChain
+	// chain is a reference to the Chain instance which will be the target of the messages.
+	chain *Chain
 	// t is the testing.T for the current test.
 	t *testing.T
 
@@ -49,7 +49,7 @@ type Broadcaster struct {
 
 // NewBroadcaster returns a instance of Broadcaster which can be used with broadcast.Tx to
 // broadcast messages sdk messages.
-func NewBroadcaster(t *testing.T, chain *CosmosChain) *Broadcaster {
+func NewBroadcaster(t *testing.T, chain *Chain) *Broadcaster {
 	t.Helper()
 
 	return &Broadcaster{
@@ -72,7 +72,7 @@ func (b *Broadcaster) ConfigureClientContextOptions(opts ...ClientContextOpt) {
 	b.clientContextOptions = append(b.clientContextOptions, opts...)
 }
 
-// GetFactory returns an instance of tx.Factory that is configured with this Broadcaster's CosmosChain
+// GetFactory returns an instance of tx.Factory that is configured with this Broadcaster's Chain
 // and the provided user. ConfigureFactoryOptions can be used to specify arbitrary options to configure the returned
 // factory.
 func (b *Broadcaster) GetFactory(ctx context.Context, user User) (tx.Factory, error) {
@@ -98,7 +98,7 @@ func (b *Broadcaster) GetFactory(ctx context.Context, user User) (tx.Factory, er
 	return f, nil
 }
 
-// GetClientContext returns a client context that is configured with this Broadcaster's CosmosChain and
+// GetClientContext returns a client context that is configured with this Broadcaster's Chain and
 // the provided user. ConfigureClientContextOptions can be used to configure arbitrary options to configure the returned
 // client.Context.
 func (b *Broadcaster) GetClientContext(ctx context.Context, user User) (client.Context, error) {

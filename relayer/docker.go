@@ -159,7 +159,7 @@ func (r *DockerRelayer) AddWallet(chainID string, wallet ibc.Wallet) {
 	r.wallets[chainID] = wallet
 }
 
-func (r *DockerRelayer) AddChainConfiguration(ctx context.Context, rep ibc.RelayerExecReporter, chainConfig ibc.ChainConfig, keyName, rpcAddr, grpcAddr string) error {
+func (r *DockerRelayer) AddChainConfiguration(ctx context.Context, rep ibc.RelayerExecReporter, chainConfig ibc.Config, keyName, rpcAddr, grpcAddr string) error {
 	// For rly this file is json, but the file extension should not matter.
 	// Using .config to avoid implying any particular format.
 	chainConfigFile := chainConfig.ChainID + ".config"
@@ -329,7 +329,7 @@ func (r *DockerRelayer) Exec(ctx context.Context, rep ibc.RelayerExecReporter, c
 	}
 }
 
-func (r *DockerRelayer) RestoreKey(ctx context.Context, rep ibc.RelayerExecReporter, cfg ibc.ChainConfig, keyName, mnemonic string) error {
+func (r *DockerRelayer) RestoreKey(ctx context.Context, rep ibc.RelayerExecReporter, cfg ibc.Config, keyName, mnemonic string) error {
 	chainID := cfg.ChainID
 	coinType := cfg.CoinType
 	cmd := r.c.RestoreKey(chainID, keyName, coinType, cfg.SigningAlgorithm, mnemonic, r.HomeDir())
@@ -514,7 +514,7 @@ func (r *DockerRelayer) UseDockerNetwork() bool {
 	return true
 }
 
-func (r *DockerRelayer) SetClientContractHash(ctx context.Context, rep ibc.RelayerExecReporter, cfg ibc.ChainConfig, hash string) error {
+func (r *DockerRelayer) SetClientContractHash(ctx context.Context, rep ibc.RelayerExecReporter, cfg ibc.Config, hash string) error {
 	panic("[rly/SetClientContractHash] Implement me")
 }
 
@@ -530,7 +530,7 @@ type RelayerCommander interface {
 	DockerUser() string
 
 	// ConfigContent generates the content of the config file that will be passed to AddChainConfiguration.
-	ConfigContent(ctx context.Context, cfg ibc.ChainConfig, keyName, rpcAddr, grpcAddr string) ([]byte, error)
+	ConfigContent(ctx context.Context, cfg ibc.Config, keyName, rpcAddr, grpcAddr string) ([]byte, error)
 
 	// ParseAddKeyOutput processes the output of AddKey
 	// to produce the wallet that was created.

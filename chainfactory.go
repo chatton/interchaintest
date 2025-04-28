@@ -45,8 +45,8 @@ var embeddedConfiguredChains []byte
 
 var logConfiguredChainsSourceOnce sync.Once
 
-// initBuiltinChainConfig returns an ibc.ChainConfig mapping all configured chains.
-func initBuiltinChainConfig(log *zap.Logger) (map[string]ibc.ChainConfig, error) {
+// initBuiltinChainConfig returns an ibc.Config mapping all configured chains.
+func initBuiltinChainConfig(log *zap.Logger) (map[string]ibc.Config, error) {
 	var dat []byte
 	var err error
 
@@ -63,7 +63,7 @@ func initBuiltinChainConfig(log *zap.Logger) (map[string]ibc.ChainConfig, error)
 		dat = embeddedConfiguredChains
 	}
 
-	builtinChainConfigs := make(map[string]ibc.ChainConfig)
+	builtinChainConfigs := make(map[string]ibc.Config)
 
 	err = yaml.Unmarshal(dat, &builtinChainConfigs)
 	if err != nil {
@@ -118,7 +118,7 @@ const (
 	defaultNumFullNodes  = 1
 )
 
-func buildChain(log *zap.Logger, testName string, cfg ibc.ChainConfig, numValidators, numFullNodes *int) (ibc.Chain, error) {
+func buildChain(log *zap.Logger, testName string, cfg ibc.Config, numValidators, numFullNodes *int) (ibc.Chain, error) {
 	nv := defaultNumValidators
 	if numValidators != nil {
 		nv = *numValidators
