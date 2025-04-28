@@ -48,13 +48,6 @@ type Chain struct {
 	Provider      *Chain
 	Consumers     []*Chain
 
-	// preStartNodes is able to mutate the node containers before
-	// they are all started
-	preStartNodes func(*Chain)
-
-	// Additional processes that need to be run on a per-chain basis.
-	Sidecars SidecarProcesses
-
 	cdc      *codec.ProtoCodec
 	log      *zap.Logger
 	keyring  keyring.Keyring
@@ -669,17 +662,6 @@ func (c *Chain) Start(testName string, ctx context.Context, additionalGenesisWal
 	// wait for this to finish
 	if err := eg.Wait(); err != nil {
 		return err
-	}
-
-	if c.preStartNodes != nil {
-		c.preStartNodes(c)
-	}
-
-	if c.cfg.PreGenesis != nil {
-		err := c.cfg.PreGenesis(c)
-		if err != nil {
-			return err
-		}
 	}
 
 	// for the validators we need to collect the gentxs and the accounts
