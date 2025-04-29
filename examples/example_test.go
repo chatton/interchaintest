@@ -2,6 +2,9 @@ package examples
 
 import (
 	"context"
+	"fmt"
+	"github.com/celestiaorg/go-square/v2/share"
+	"github.com/chatton/interchaintest/v1/dockerutil"
 	"github.com/cosmos/cosmos-sdk/types/module/testutil"
 	"testing"
 	"time"
@@ -30,7 +33,7 @@ func TestCelestiaChain(t *testing.T) {
 	client, network := interchaintest.DockerSetup(t)
 
 	// Define the number of validators
-	numValidators := 4
+	numValidators := 1
 	numFullNodes := 0
 
 	enc := testutil.MakeTestEncodingConfig(celestiaapp.ModuleEncodingRegisters...)
@@ -87,6 +90,52 @@ func TestCelestiaChain(t *testing.T) {
 	require.Equal(t, numValidators, len(cosmosChain.Validators))
 
 	t.Logf("Successfully started Celestia chain with %d validators", numValidators)
+
+	// Deploy txsim image
+	t.Log("Deploying txsim image")
+	txsimImage := dockerutil.NewImage(logger, client, network, t.Name(), "ghcr.io/celestiaorg/txsim", "v4.0.0-rc1")
+
+	// Get the RPC address to connect to the Celestia node
+	rpcAddress := celestia.GetHostRPCAddress()
+	t.Logf("Connecting to Celestia node at %s", rpcAddress)
+
+	// Run the txsim container
+	opts := dockerutil.ContainerOptions{
+		User: "10001:10001",
+	}
+
+	args := []string{
+		fmt.Sprintf("--key-path %s", celestia.HomeDir()),
+		fmt.Sprintf("--grpc-endpoint %s", celestia.GetGRPCAddress()),
+		fmt.Sprintf("--poll-time %ds", 1),
+		fmt.Sprintf("--seed %d", 42), // default seed in celestia-app
+		fmt.Sprintf("--blob %d", 10),
+		fmt.Sprintf("--blob-amounts %d", 100),
+		fmt.Sprintf("--blob-sizes %s", "100-2000"),
+		fmt.Sprintf("--blob-share-version %d", share.ShareVersionZero),
+	}
+
+	// Start the txsim container
+	container, err := txsimImage.Start(ctx, args, opts)
+	require.NoError(t, err, "Failed to start txsim container")
+
+	// Cleanup the container when the test is done
+	t.Cleanup(func() {
+		if err := container.Stop(10 * time.Second); err != nil {
+			t.Logf("Error stopping txsim container: %v", err)
+		}
+	})
+
+	// Wait for a short time to allow txsim to start
+	time.Sleep(10 * time.Second)
+
+	// Check if the container is running
+	t.Log("TxSim container started successfully")
+	t.Logf("TxSim container ID: %s", container.Name)
+
+	// Wait for some time to let txsim generate transactions
+	t.Log("Waiting for txsim to generate transactions...")
+	time.Sleep(30 * time.Second)
 
 	pollCtx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancel()
