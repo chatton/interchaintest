@@ -6,6 +6,8 @@ import (
 	"github.com/celestiaorg/go-square/v2/share"
 	"github.com/chatton/interchaintest/v1/dockerutil"
 	"github.com/cosmos/cosmos-sdk/types/module/testutil"
+	"github.com/docker/docker/api/types"
+	"github.com/moby/moby/client"
 	"testing"
 	"time"
 
@@ -46,7 +48,7 @@ func TestCelestiaChain(t *testing.T) {
 		NumFullNodes:  &numFullNodes,
 		Config: ibc.Config{
 			EncodingConfig:      &enc,
-			AdditionalStartArgs: []string{"--force-no-bbr"},
+			AdditionalStartArgs: []string{"--force-no-bbr", "--grpc.enable", "--grpc.address", "0.0.0.0:9090"},
 			Type:                "cosmos",
 			ChainID:             "celestia",
 			Images: []ibc.DockerImage{
@@ -91,9 +93,12 @@ func TestCelestiaChain(t *testing.T) {
 
 	t.Logf("Successfully started Celestia chain with %d validators", numValidators)
 
+	networkName, err := GetNetworkNameFromID(ctx, client, network)
+	require.NoError(t, err)
+
 	// Deploy txsim image
 	t.Log("Deploying txsim image")
-	txsimImage := dockerutil.NewImage(logger, client, network, t.Name(), "ghcr.io/celestiaorg/txsim", "v4.0.0-rc1")
+	txsimImage := dockerutil.NewImage(logger, client, networkName, t.Name(), "ghcr.io/celestiaorg/txsim", "v4.0.0-rc1")
 
 	// Get the RPC address to connect to the Celestia node
 	rpcAddress := celestia.GetHostRPCAddress()
@@ -101,18 +106,24 @@ func TestCelestiaChain(t *testing.T) {
 
 	// Run the txsim container
 	opts := dockerutil.ContainerOptions{
-		User: "10001:10001",
+		User: dockerutil.GetRootUserString(),
+		// Mount the Celestia home directory into the txsim container
+		Binds: []string{celestia.(*cosmos.Chain).Validators[0].VolumeName + ":/celestia-home"},
 	}
 
+	t.Logf("waiting for grpc service to be online")
+	time.Sleep(10 * time.Second)
+
 	args := []string{
-		fmt.Sprintf("--key-path %s", celestia.HomeDir()),
-		fmt.Sprintf("--grpc-endpoint %s", celestia.GetGRPCAddress()),
-		fmt.Sprintf("--poll-time %ds", 1),
-		fmt.Sprintf("--seed %d", 42), // default seed in celestia-app
-		fmt.Sprintf("--blob %d", 10),
-		fmt.Sprintf("--blob-amounts %d", 100),
-		fmt.Sprintf("--blob-sizes %s", "100-2000"),
-		fmt.Sprintf("--blob-share-version %d", share.ShareVersionZero),
+		"/bin/txsim",
+		"--key-path", "/celestia-home",
+		"--grpc-endpoint", celestia.GetGRPCAddress(),
+		"--poll-time", "1s",
+		"--seed", "42",
+		"--blob", "10",
+		"--blob-amounts", "100",
+		"--blob-sizes", "100-2000",
+		"--blob-share-version", fmt.Sprintf("%d", share.ShareVersionZero),
 	}
 
 	// Start the txsim container
@@ -132,10 +143,6 @@ func TestCelestiaChain(t *testing.T) {
 	// Check if the container is running
 	t.Log("TxSim container started successfully")
 	t.Logf("TxSim container ID: %s", container.Name)
-
-	// Wait for some time to let txsim generate transactions
-	t.Log("Waiting for txsim to generate transactions...")
-	time.Sleep(30 * time.Second)
 
 	pollCtx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancel()
@@ -173,4 +180,16 @@ func TestCelestiaChain(t *testing.T) {
 			t.Failed()
 		}
 	}
+}
+
+// GetNetworkNameFromID resolves the network name given its ID.
+func GetNetworkNameFromID(ctx context.Context, cli *client.Client, networkID string) (string, error) {
+	network, err := cli.NetworkInspect(ctx, networkID, types.NetworkInspectOptions{})
+	if err != nil {
+		return "", fmt.Errorf("failed to inspect network %s: %w", networkID, err)
+	}
+	if network.Name == "" {
+		return "", fmt.Errorf("network %s has no name", networkID)
+	}
+	return network.Name, nil
 }
