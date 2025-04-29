@@ -21,6 +21,7 @@ require (
 	github.com/BurntSushi/toml v1.4.0
 	github.com/avast/retry-go/v4 v4.5.1
 	github.com/celestiaorg/celestia-app/v4 v4.0.0-rc1
+	github.com/celestiaorg/go-square/v2 v2.2.0
 	github.com/cometbft/cometbft v0.38.17
 	github.com/cosmos/cosmos-sdk v0.50.13
 	github.com/cosmos/ibc-go/v8 v8.7.0
@@ -98,7 +99,6 @@ require (
 	github.com/bits-and-blooms/bitset v1.17.0 // indirect
 	github.com/bytedance/sonic v1.13.1 // indirect
 	github.com/bytedance/sonic/loader v0.2.4 // indirect
-	github.com/celestiaorg/go-square/v2 v2.2.0 // indirect
 	github.com/celestiaorg/merkletree v0.0.0-20210714075610-a84dc3ddbbe4 // indirect
 	github.com/celestiaorg/nmt v0.23.0 // indirect
 	github.com/celestiaorg/rsmt2d v0.14.0 // indirect
@@ -140,7 +140,7 @@ require (
 	github.com/emicklei/dot v1.6.2 // indirect
 	github.com/envoyproxy/go-control-plane/envoy v1.32.4 // indirect
 	github.com/envoyproxy/protoc-gen-validate v1.2.1 // indirect
-	github.com/ethereum/go-ethereum v1.15.8 // indirect
+	github.com/ethereum/go-ethereum v1.15.10 // indirect
 	github.com/fatih/color v1.18.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.8.0 // indirect
