@@ -10,7 +10,6 @@ import (
 	"github.com/chatton/interchaintest/v1"
 	"github.com/chatton/interchaintest/v1/chain/cosmos"
 	"github.com/chatton/interchaintest/v1/ibc"
-	"github.com/chatton/interchaintest/v1/testreporter"
 )
 
 func TestCelestiaChain(t *testing.T) {
@@ -31,7 +30,7 @@ func TestCelestiaChain(t *testing.T) {
 	numFullNodes := 0
 
 	// Create a single Celestia chain directly
-	celestia, err := interchaintest.NewChain(logger, t.Name(), &interchaintest.ChainSpec{
+	celestia, err := interchaintest.NewChain(logger, t.Name(), client, network, &interchaintest.ChainSpec{
 		Name:          "celestia",
 		ChainName:     "celestia",
 		Version:       "v4.0.0-rc1",
@@ -57,22 +56,17 @@ func TestCelestiaChain(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	// Create an Interchain object
-	ic := interchaintest.NewInterchain().
-		AddChain(celestia)
-
-	// Create a test reporter
-	rep := testreporter.NewNopReporter()
-	eRep := rep.RelayerExecReporter(t)
-
-	// Build the interchain
+	// Start the chain
 	ctx := context.Background()
-	require.NoError(t, ic.Build(ctx, eRep, interchaintest.InterchainBuildOptions{
-		TestName:  t.Name(),
-		Client:    client,
-		NetworkID: network,
-	}))
-	defer ic.Close()
+	additionalGenesisWallets := []ibc.WalletAmount{}
+	require.NoError(t, celestia.Start(t.Name(), ctx, additionalGenesisWallets...))
+
+	// Cleanup resources when the test is done
+	t.Cleanup(func() {
+		if err := celestia.(*cosmos.Chain).StopAllNodes(ctx); err != nil {
+			t.Logf("Error stopping chain nodes: %v", err)
+		}
+	})
 
 	// Verify the chain is running
 	height, err := celestia.Height(ctx)

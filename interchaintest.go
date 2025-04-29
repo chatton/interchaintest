@@ -1,11 +1,13 @@
 package interchaintest
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/chatton/interchaintest/v1/ibc"
+	"github.com/moby/moby/client"
 	"go.uber.org/zap"
 )
 
@@ -37,7 +39,7 @@ func DefaultBlockDatabaseFilepath() string {
 //
 // Example:
 //
-//	chain := interchaintest.NewChain(logger, t.Name(), &interchaintest.ChainSpec{
+//	chain := interchaintest.NewChain(logger, t.Name(), client, networkID, &interchaintest.ChainSpec{
 //		Name:          "celestia",
 //		ChainName:     "celestia",
 //		Version:       "v4.0.0-rc1",
@@ -49,11 +51,21 @@ func DefaultBlockDatabaseFilepath() string {
 //			// ... other config options
 //		},
 //	})
-func NewChain(log *zap.Logger, testName string, spec *ChainSpec) (ibc.Chain, error) {
+func NewChain(log *zap.Logger, testName string, client *client.Client, networkID string, spec *ChainSpec) (ibc.Chain, error) {
 	cfg, err := spec.GetConfig(log)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get chain config: %w", err)
 	}
 
-	return buildChain(log, testName, *cfg, spec.NumValidators, spec.NumFullNodes)
+	chain, err := buildChain(log, testName, *cfg, spec.NumValidators, spec.NumFullNodes)
+	if err != nil {
+		return nil, err
+	}
+
+	// Initialize the chain with docker resources
+	if err := chain.Initialize(context.Background(), testName, client, networkID); err != nil {
+		return nil, fmt.Errorf("failed to initialize chain: %w", err)
+	}
+
+	return chain, nil
 }
