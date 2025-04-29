@@ -19,7 +19,7 @@ func TestChainSpec_Config(t *testing.T) {
 			Version: "v7.0.1",
 		}
 
-		_, err := s.Config(zaptest.NewLogger(t))
+		_, err := s.GetConfig(zaptest.NewLogger(t))
 		require.NoError(t, err)
 	})
 
@@ -44,7 +44,7 @@ func TestChainSpec_Config(t *testing.T) {
 			},
 		}
 
-		_, err := s.Config(zaptest.NewLogger(t))
+		_, err := s.GetConfig(zaptest.NewLogger(t))
 		require.Error(t, err)
 	})
 
@@ -68,7 +68,7 @@ func TestChainSpec_Config(t *testing.T) {
 			},
 		}
 
-		_, err := s.Config(zaptest.NewLogger(t))
+		_, err := s.GetConfig(zaptest.NewLogger(t))
 		require.NoError(t, err)
 	})
 
@@ -82,7 +82,7 @@ func TestChainSpec_Config(t *testing.T) {
 		cfg1, err := s.Config(zaptest.NewLogger(t))
 		require.NoError(t, err)
 
-		cfg2, err := s.Config(zaptest.NewLogger(t))
+		cfg2, err := s.GetConfig(zaptest.NewLogger(t))
 		require.NoError(t, err)
 
 		diff := cmp.Diff(cfg1, cfg2)
@@ -97,7 +97,7 @@ func TestChainSpec_Config(t *testing.T) {
 				Version: "v7.0.1",
 			}
 
-			cfg, err := s.Config(zaptest.NewLogger(t))
+			cfg, err := s.GetConfig(zaptest.NewLogger(t))
 			require.NoError(t, err)
 
 			require.Regexp(t, `^gaia-\d+$`, cfg.Name)
@@ -112,7 +112,7 @@ func TestChainSpec_Config(t *testing.T) {
 				Version: "v7.0.1",
 			}
 
-			cfg, err := s.Config(zaptest.NewLogger(t))
+			cfg, err := s.GetConfig(zaptest.NewLogger(t))
 			require.NoError(t, err)
 
 			require.Equal(t, "mychain", cfg.Name)
@@ -130,7 +130,7 @@ func TestChainSpec_Config(t *testing.T) {
 				ChainID: "g-0000",
 			},
 		}
-		baseCfg, err := baseSpec.Config(zaptest.NewLogger(t))
+		baseCfg, err := baseSpec.GetConfig(zaptest.NewLogger(t))
 		require.NoError(t, err)
 
 		t.Run("NoHostMount", func(t *testing.T) {
@@ -140,7 +140,7 @@ func TestChainSpec_Config(t *testing.T) {
 			s := baseSpec
 			s.NoHostMount = &m
 
-			cfg, err := s.Config(zaptest.NewLogger(t))
+			cfg, err := s.GetConfig(zaptest.NewLogger(t))
 			require.NoError(t, err)
 
 			require.Equal(t, m, cfg.NoHostMount)
@@ -153,7 +153,7 @@ func TestChainSpec_Config(t *testing.T) {
 				Name: "gaia",
 			}
 
-			_, err := s.Config(zaptest.NewLogger(t))
+			_, err := s.GetConfig(zaptest.NewLogger(t))
 			require.EqualError(t, err, "ChainSpec.Version must not be empty")
 		})
 
@@ -162,7 +162,7 @@ func TestChainSpec_Config(t *testing.T) {
 				Version: "v1.2.3",
 			}
 
-			_, err := s.Config(zaptest.NewLogger(t))
+			_, err := s.GetConfig(zaptest.NewLogger(t))
 			require.EqualError(t, err, "ChainSpec.Name required when not all config fields are set")
 		})
 
@@ -172,7 +172,7 @@ func TestChainSpec_Config(t *testing.T) {
 				Version: "v1.2.3",
 			}
 
-			_, err := s.Config(zaptest.NewLogger(t))
+			_, err := s.GetConfig(zaptest.NewLogger(t))
 			require.ErrorContains(t, err, "no chain configuration for invalid_chain (available chains are:")
 		})
 	})

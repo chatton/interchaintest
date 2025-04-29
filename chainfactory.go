@@ -93,7 +93,7 @@ func (f *BuiltinChainFactory) Count() int {
 func (f *BuiltinChainFactory) Chains(testName string) ([]ibc.Chain, error) {
 	chains := make([]ibc.Chain, len(f.specs))
 	for i, s := range f.specs {
-		cfg, err := s.Config(f.log)
+		cfg, err := s.GetConfig(f.log)
 		if err != nil {
 			// Prefer to wrap the error with the chain name if possible.
 			if s.Name != "" {
@@ -141,7 +141,7 @@ func (f *BuiltinChainFactory) Name() string {
 	for i, s := range f.specs {
 		// Ignoring error here because if we fail to generate the config,
 		// another part of the factory stack should have failed properly before we got here.
-		cfg, _ := s.Config(f.log)
+		cfg, _ := s.GetConfig(f.log)
 
 		v := s.Version
 		if v == "" {

@@ -56,7 +56,7 @@ type Chain struct {
 
 func NewCosmosChain(testName string, chainConfig ibc.Config, numValidators int, numFullNodes int, log *zap.Logger) *Chain {
 	if chainConfig.EncodingConfig == nil {
-		panic("chain config must have an encoding config set")
+		//panic("chain config must have an encoding config set")
 	}
 
 	if chainConfig.UsesCometMock() {
@@ -82,11 +82,6 @@ func NewCosmosChain(testName string, chainConfig ibc.Config, numValidators int, 
 		cdc:           cdc,
 		keyring:       kr,
 	}
-}
-
-// WithPreStartNodes sets the preStartNodes function.
-func (c *Chain) WithPreStartNodes(preStartNodes func(*Chain)) {
-	c.preStartNodes = preStartNodes
 }
 
 // GetCodec returns the codec for the chain.
@@ -508,8 +503,6 @@ func (c *Chain) NewSidecarProcess(
 		return fmt.Errorf("set volume owner: %w", err)
 	}
 
-	c.Sidecars = append(c.Sidecars, s)
-
 	return nil
 }
 
@@ -735,29 +728,7 @@ func (c *Chain) Start(testName string, ctx context.Context, additionalGenesisWal
 		return err
 	}
 
-	// Start any sidecar processes that should be running before the chain starts
 	eg, egCtx := errgroup.WithContext(ctx)
-	for _, s := range c.Sidecars {
-		err = s.containerLifecycle.Running(ctx)
-		if s.preStart && err != nil {
-			eg.Go(func() error {
-				if err := s.CreateContainer(egCtx); err != nil {
-					return err
-				}
-
-				if err := s.StartContainer(egCtx); err != nil {
-					return err
-				}
-
-				return nil
-			})
-		}
-	}
-	if err := eg.Wait(); err != nil {
-		return err
-	}
-
-	eg, egCtx = errgroup.WithContext(ctx)
 	for _, n := range chainNodes {
 		eg.Go(func() error {
 			return n.CreateNodeContainer(egCtx)
@@ -869,20 +840,6 @@ func (c *Chain) StopAllNodes(ctx context.Context) error {
 	return eg.Wait()
 }
 
-// StopAllSidecars stops and removes all long-running containers for sidecar processes.
-func (c *Chain) StopAllSidecars(ctx context.Context) error {
-	var eg errgroup.Group
-	for _, s := range c.Sidecars {
-		eg.Go(func() error {
-			if err := s.StopContainer(ctx); err != nil {
-				return err
-			}
-			return s.RemoveContainer(ctx)
-		})
-	}
-	return eg.Wait()
-}
-
 // StartAllNodes creates and starts new containers for each node.
 // Should only be used if the chain has previously been started with .Start.
 func (c *Chain) StartAllNodes(ctx context.Context) error {
@@ -898,56 +855,6 @@ func (c *Chain) StartAllNodes(ctx context.Context) error {
 			return n.StartContainer(ctx)
 		})
 	}
-	return eg.Wait()
-}
-
-// StartAllSidecars creates and starts new containers for each sidecar process.
-// Should only be used if the chain has previously been started with .Start.
-func (c *Chain) StartAllSidecars(ctx context.Context) error {
-	// prevent client calls during this time
-	c.findTxMu.Lock()
-	defer c.findTxMu.Unlock()
-	var eg errgroup.Group
-	for _, s := range c.Sidecars {
-		err := s.containerLifecycle.Running(ctx)
-		if err == nil {
-			continue
-		}
-
-		eg.Go(func() error {
-			if err := s.CreateContainer(ctx); err != nil {
-				return err
-			}
-			return s.StartContainer(ctx)
-		})
-	}
-	return eg.Wait()
-}
-
-// StartAllValSidecars creates and starts new containers for each validator sidecar process.
-// Should only be used if the chain has previously been started with .Start.
-func (c *Chain) StartAllValSidecars(ctx context.Context) error {
-	// prevent client calls during this time
-	c.findTxMu.Lock()
-	defer c.findTxMu.Unlock()
-	var eg errgroup.Group
-
-	for _, v := range c.Validators {
-		for _, s := range v.Sidecars {
-			err := s.containerLifecycle.Running(ctx)
-			if err == nil {
-				continue
-			}
-
-			eg.Go(func() error {
-				if err := s.CreateContainer(ctx); err != nil {
-					return err
-				}
-				return s.StartContainer(ctx)
-			})
-		}
-	}
-
 	return eg.Wait()
 }
 

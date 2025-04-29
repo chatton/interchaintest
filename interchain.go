@@ -2,13 +2,11 @@ package interchaintest
 
 import (
 	"context"
+	sdkmath "cosmossdk.io/math"
 	"fmt"
 	"github.com/moby/moby/client"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
-	"math"
-
-	sdkmath "cosmossdk.io/math"
 
 	"github.com/chatton/interchaintest/v1/chain/cosmos"
 	"github.com/chatton/interchaintest/v1/ibc"
@@ -340,10 +338,6 @@ func (ic *Interchain) Build(ctx context.Context, rep *testreporter.RelayerExecRe
 		return fmt.Errorf("failed to start chains: %w", err)
 	}
 
-	if err := ic.cs.TrackBlocks(ctx, opts.TestName, opts.BlockDatabaseFile, opts.GitSha); err != nil {
-		return fmt.Errorf("failed to track blocks: %w", err)
-	}
-
 	if err := ic.configureRelayerKeys(ctx, rep); err != nil {
 		// Error already wrapped with appropriate detail.
 		return err
@@ -559,14 +553,13 @@ func (ic *Interchain) genesisWalletAmounts(ctx context.Context) (map[ibc.Chain][
 
 	// Add faucet for each chain first.
 	for c := range ic.chains {
-		decimalPow := int64(math.Pow10(int(*c.Config().CoinDecimals)))
 
 		// The values are nil at this point, so it is safe to directly assign the slice.
 		walletAmounts[c] = []ibc.WalletAmount{
 			{
 				Address: faucetAddresses[c],
 				Denom:   c.Config().Denom,
-				Amount:  sdkmath.NewInt(100_000_000).MulRaw(decimalPow), // Faucet wallet gets 100M units of scaled denom.
+				Amount:  sdkmath.NewInt(100_000_000), // Faucet wallet gets 100M units of scaled denom.
 			},
 		}
 
@@ -578,11 +571,10 @@ func (ic *Interchain) genesisWalletAmounts(ctx context.Context) (map[ibc.Chain][
 	// Then add all defined relayer wallets.
 	for rc, wallet := range ic.relayerWallets {
 		c := rc.C
-		decimalPow := int64(math.Pow10(int(*c.Config().CoinDecimals)))
 		walletAmounts[c] = append(walletAmounts[c], ibc.WalletAmount{
 			Address: wallet.FormattedAddress(),
 			Denom:   c.Config().Denom,
-			Amount:  sdkmath.NewInt(1_000_000).MulRaw(decimalPow), // Every wallet gets 1M units of scaled denom.
+			Amount:  sdkmath.NewInt(1_000_000), // Every wallet gets 1M units of scaled denom.
 		})
 	}
 
