@@ -1200,6 +1200,28 @@ func (nodes ChainNodes) PeerString(ctx context.Context) string {
 	return strings.Join(addrs, ",")
 }
 
+// RPCString returns the string for connecting the nodes passed in.
+func (nodes ChainNodes) RPCString(ctx context.Context) string {
+	addrs := make([]string, len(nodes))
+	for i, n := range nodes {
+		id, err := n.NodeID(ctx)
+		if err != nil {
+			// TODO: would this be better to panic?
+			// When would NodeId return an error?
+			break
+		}
+		hostName := n.HostName()
+		ps := fmt.Sprintf("%s@%s:26657", id, hostName)
+		nodes.logger().Info("RPC",
+			zap.String("host_name", hostName),
+			zap.String("peer", ps),
+			zap.String("container", n.Name()),
+		)
+		addrs[i] = ps
+	}
+	return strings.Join(addrs, ",")
+}
+
 // LogGenesisHashes logs the genesis hashes for the various nodes.
 func (nodes ChainNodes) LogGenesisHashes(ctx context.Context) error {
 	for _, n := range nodes {

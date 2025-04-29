@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/cometbft/cometbft/rpc/client/http"
 	"io"
 	"math"
 	"os"
@@ -181,6 +182,10 @@ func (c *Chain) GetGRPCAddress() string {
 // This will not return a valid address until the chain has been started.
 func (c *Chain) GetHostRPCAddress() string {
 	return "http://" + c.GetFullNode().hostRPCPort
+}
+
+func (c *Chain) Client() (*http.HTTP, error) {
+	return http.New(c.GetHostRPCAddress(), "/websocket")
 }
 
 // GetHostAPIAddress returns the address of the REST API server accessible by the host.
