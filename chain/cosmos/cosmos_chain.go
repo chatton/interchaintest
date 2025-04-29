@@ -581,7 +581,7 @@ func (c *Chain) Start(testName string, ctx context.Context, additionalGenesisWal
 	genesisSelfDelegation := make([]sdk.Coin, len(c.Validators))
 
 	for i := range c.Validators {
-		genesisAmounts[i] = []sdk.Coin{{Amount: sdkmath.NewInt(10_000_000), Denom: chainCfg.Denom}}
+		genesisAmounts[i] = []sdk.Coin{{Amount: sdkmath.NewInt(10_000_000_000_000), Denom: chainCfg.Denom}}
 		genesisSelfDelegation[i] = sdk.Coin{Amount: sdkmath.NewInt(5_000_000), Denom: chainCfg.Denom}
 		if chainCfg.ModifyGenesisAmounts != nil {
 			amount, selfDelegation := chainCfg.ModifyGenesisAmounts(i)

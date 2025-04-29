@@ -108,7 +108,7 @@ func TestCelestiaChain(t *testing.T) {
 	opts := dockerutil.ContainerOptions{
 		User: dockerutil.GetRootUserString(),
 		// Mount the Celestia home directory into the txsim container
-		Binds: []string{celestia.(*cosmos.Chain).Validators[0].VolumeName + ":/celestia-home"},
+		Binds: []string{cosmosChain.Validators[0].VolumeName + ":/celestia-home"},
 	}
 
 	t.Logf("waiting for grpc service to be online")
@@ -123,6 +123,7 @@ func TestCelestiaChain(t *testing.T) {
 		"--blob", "10",
 		"--blob-amounts", "100",
 		"--blob-sizes", "100-2000",
+		"--gas-price", "0.025",
 		"--blob-share-version", fmt.Sprintf("%d", share.ShareVersionZero),
 	}
 
