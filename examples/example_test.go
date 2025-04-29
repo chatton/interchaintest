@@ -30,40 +30,32 @@ func TestCelestiaChain(t *testing.T) {
 	numValidators := 4
 	numFullNodes := 0
 
-	// Create a chain factory with a single Celestia chain
-	cf := interchaintest.NewBuiltinChainFactory(logger, []*interchaintest.ChainSpec{
-		{
-			Name:          "celestia",
-			ChainName:     "celestia",
-			Version:       "v4.0.0-rc1",
-			NumValidators: &numValidators,
-			NumFullNodes:  &numFullNodes,
-			Config: ibc.Config{
-				AdditionalStartArgs: []string{"--force-no-bbr"},
-				Type:                "cosmos",
-				ChainID:             "celestia",
-				Images: []ibc.DockerImage{
-					{
-						Repository: "ghcr.io/celestiaorg/celestia-app",
-						Version:    "v4.0.0-rc1",
-						UIDGID:     "10001:10001",
-					},
+	// Create a single Celestia chain directly
+	celestia, err := interchaintest.NewChain(logger, t.Name(), &interchaintest.ChainSpec{
+		Name:          "celestia",
+		ChainName:     "celestia",
+		Version:       "v4.0.0-rc1",
+		NumValidators: &numValidators,
+		NumFullNodes:  &numFullNodes,
+		Config: ibc.Config{
+			AdditionalStartArgs: []string{"--force-no-bbr"},
+			Type:                "cosmos",
+			ChainID:             "celestia",
+			Images: []ibc.DockerImage{
+				{
+					Repository: "ghcr.io/celestiaorg/celestia-app",
+					Version:    "v4.0.0-rc1",
+					UIDGID:     "10001:10001",
 				},
-				Bin:           "celestia-appd",
-				Bech32Prefix:  "celestia",
-				Denom:         "utia",
-				GasPrices:     "0.025utia",
-				GasAdjustment: 1.3,
 			},
+			Bin:           "celestia-appd",
+			Bech32Prefix:  "celestia",
+			Denom:         "utia",
+			GasPrices:     "0.025utia",
+			GasAdjustment: 1.3,
 		},
 	})
-
-	// Get the chains from the factory
-	chains, err := cf.Chains(t.Name())
 	require.NoError(t, err)
-
-	// We only have one chain
-	celestia := chains[0]
 
 	// Create an Interchain object
 	ic := interchaintest.NewInterchain().

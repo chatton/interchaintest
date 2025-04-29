@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/chatton/interchaintest/v1/ibc"
+	"go.uber.org/zap"
 )
 
 // CreateLogFile creates a file with name in dir $HOME/.interchaintest/logs/.
@@ -27,4 +30,30 @@ func DefaultBlockDatabaseFilepath() string {
 		panic(err)
 	}
 	return filepath.Join(home, ".interchaintest", "databases", "block.db")
+}
+
+// NewChain creates a single chain based on the provided ChainSpec.
+// This is a simpler alternative to using NewBuiltinChainFactory when only a single chain is needed.
+//
+// Example:
+//
+//	chain := interchaintest.NewChain(logger, t.Name(), &interchaintest.ChainSpec{
+//		Name:          "celestia",
+//		ChainName:     "celestia",
+//		Version:       "v4.0.0-rc1",
+//		NumValidators: &numValidators,
+//		NumFullNodes:  &numFullNodes,
+//		Config: ibc.Config{
+//			Type:                "cosmos",
+//			ChainID:             "celestia",
+//			// ... other config options
+//		},
+//	})
+func NewChain(log *zap.Logger, testName string, spec *ChainSpec) (ibc.Chain, error) {
+	cfg, err := spec.GetConfig(log)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get chain config: %w", err)
+	}
+
+	return buildChain(log, testName, *cfg, spec.NumValidators, spec.NumFullNodes)
 }
