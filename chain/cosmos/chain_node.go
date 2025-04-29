@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"hash/fnv"
-	"math/rand"
 	"os"
 	"path"
 	"path/filepath"
@@ -21,7 +20,6 @@ import (
 	"github.com/docker/go-connections/nat"
 	dockerclient "github.com/moby/moby/client"
 	"go.uber.org/zap"
-	"golang.org/x/mod/semver"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
@@ -345,12 +343,7 @@ func (tn *ChainNode) SetTestConfig(ctx context.Context) error {
 
 	// Enable public RPC
 	rpc["laddr"] = "tcp://0.0.0.0:26657"
-	if tn.Chain.Config().UsesCometMock() {
-		rpc["laddr"] = fmt.Sprintf("tcp://%s:%s", tn.HostnameCometMock(), cometMockRawPort)
-	}
-
 	rpc["allowed_origins"] = []string{"*"}
-
 	c["rpc"] = rpc
 
 	if err := testutil.ModifyTomlConfigFile(
@@ -525,10 +518,6 @@ func (tn *ChainNode) NodeCommand(command ...string) []string {
 
 	endpoint := fmt.Sprintf("tcp://%s:26657", tn.HostName())
 
-	if tn.Chain.Config().UsesCometMock() {
-		endpoint = fmt.Sprintf("tcp://%s:%s", tn.HostnameCometMock(), cometMockRawPort)
-	}
-
 	return append(command,
 		"--node", endpoint,
 	)
@@ -668,31 +657,6 @@ func (tn *ChainNode) RecoverKey(ctx context.Context, keyName, mnemonic string) e
 	return err
 }
 
-func (tn *ChainNode) IsAboveSDK47(ctx context.Context) bool {
-	// In SDK v47, a new genesis core command was added. This spec has many state breaking features
-	// so we use this to switch between new and legacy SDK logic.
-	// https://github.com/cosmos/cosmos-sdk/pull/14149
-	return tn.HasCommand(ctx, "genesis")
-}
-
-// ICSVersion returns the version of interchain-security the binary was built with.
-// If it doesn't depend on interchain-security, it returns an empty string.
-func (tn *ChainNode) ICSVersion(ctx context.Context) string {
-	if strings.HasPrefix(tn.Chain.Config().Bin, "interchain-security") {
-		// This isn't super pretty, but it's the best we can do for an interchain-security binary.
-		// It doesn't depend on itself, and the version command doesn't actually output a version.
-		// Ideally if you have a binary called something like "v3.3.0-my-fix" you can use it as a version, since the v3.3.0 part is in it.
-		return semver.Canonical(tn.Image.Version)
-	}
-	info := tn.GetBuildInformation(ctx)
-	for _, dep := range info.BuildDeps {
-		if strings.HasPrefix(dep.Parent, "github.com/cosmos/interchain-security") {
-			return semver.Canonical(dep.Version)
-		}
-	}
-	return ""
-}
-
 // AddGenesisAccount adds a genesis account for each key.
 func (tn *ChainNode) AddGenesisAccount(ctx context.Context, address string, genesisAmount []sdk.Coin) error {
 	amount := ""
@@ -711,11 +675,7 @@ func (tn *ChainNode) AddGenesisAccount(ctx context.Context, address string, gene
 	ctx, cancel := context.WithTimeout(ctx, time.Minute)
 	defer cancel()
 
-	var command []string
-	if tn.IsAboveSDK47(ctx) {
-		command = append(command, "genesis")
-	}
-
+	command := []string{"genesis"}
 	command = append(command, "add-genesis-account", address, amount)
 
 	if tn.Chain.Config().UsingChainIDFlagCLI {
@@ -732,11 +692,7 @@ func (tn *ChainNode) Gentx(ctx context.Context, name string, genesisSelfDelegati
 	tn.lock.Lock()
 	defer tn.lock.Unlock()
 
-	var command []string
-	if tn.IsAboveSDK47(ctx) {
-		command = append(command, "genesis")
-	}
-
+	command := []string{"genesis"}
 	command = append(command, "gentx", valKey, fmt.Sprintf("%s%s", genesisSelfDelegation.Amount.String(), genesisSelfDelegation.Denom),
 		"--gas-prices", tn.Chain.Config().GasPrices,
 		"--gas-adjustment", fmt.Sprint(tn.Chain.Config().GasAdjustment),
@@ -751,10 +707,7 @@ func (tn *ChainNode) Gentx(ctx context.Context, name string, genesisSelfDelegati
 // CollectGentxs runs collect gentxs on the node's home folders.
 func (tn *ChainNode) CollectGentxs(ctx context.Context) error {
 	command := []string{tn.Chain.Config().Bin}
-	if tn.IsAboveSDK47(ctx) {
-		command = append(command, "genesis")
-	}
-
+	command = append(command, "genesis")
 	command = append(command, "collect-gentxs", "--home", tn.HomeDir())
 
 	tn.lock.Lock()
@@ -1004,10 +957,7 @@ func (tn *ChainNode) UnsafeResetAll(ctx context.Context) error {
 	defer tn.lock.Unlock()
 
 	command := []string{tn.Chain.Config().Bin}
-	if tn.IsAboveSDK47(ctx) {
-		command = append(command, "comet")
-	}
-
+	command = append(command, "comet")
 	command = append(command, "unsafe-reset-all", "--home", tn.HomeDir())
 
 	_, _, err := tn.Exec(ctx, command, tn.Chain.Config().Env)
@@ -1029,44 +979,6 @@ func (tn *ChainNode) CreateNodeContainer(ctx context.Context) error {
 		if len(chainCfg.AdditionalStartArgs) > 0 {
 			cmd = append(cmd, chainCfg.AdditionalStartArgs...)
 		}
-	}
-
-	if chainCfg.UsesCometMock() {
-		abciAppAddr := fmt.Sprintf("tcp://%s:26658", tn.HostName())
-		connectionMode := "grpc"
-
-		cmd = append(cmd, "--with-tendermint=false", fmt.Sprintf("--transport=%s", connectionMode), fmt.Sprintf("--address=%s", abciAppAddr))
-
-		blockTime := chainCfg.CometMock.BlockTimeMs
-		if blockTime <= 0 {
-			blockTime = 100
-		}
-		blockTimeFlag := fmt.Sprintf("--block-time=%d", blockTime)
-
-		defaultListenAddr := fmt.Sprintf("tcp://0.0.0.0:%s", cometMockRawPort)
-		genesisFile := path.Join(tn.HomeDir(), "config", "genesis.json")
-
-		containerName := fmt.Sprintf("cometmock-%s-%d", tn.Name(), rand.Intn(50_000))
-		tn.Sidecars = append(tn.Sidecars, &SidecarProcess{
-			ProcessName:      containerName,
-			validatorProcess: true,
-			Image:            chainCfg.CometMock.Image,
-			preStart:         true,
-			startCmd:         []string{"cometmock", blockTimeFlag, abciAppAddr, genesisFile, defaultListenAddr, tn.HomeDir(), connectionMode},
-			ports: nat.PortMap{
-				nat.Port(cometMockRawPort): {},
-			},
-			Chain:              tn.Chain,
-			TestName:           tn.TestName,
-			VolumeName:         tn.VolumeName,
-			DockerClient:       tn.DockerClient,
-			NetworkID:          tn.NetworkID,
-			Index:              tn.Index,
-			homeDir:            tn.HomeDir(),
-			log:                tn.log,
-			env:                chainCfg.Env,
-			containerLifecycle: dockerutil.NewContainerLifecycle(tn.log, tn.DockerClient, containerName),
-		})
 	}
 
 	usingPorts := nat.PortMap{}
@@ -1114,22 +1026,6 @@ func (tn *ChainNode) StartContainer(ctx context.Context) error {
 
 			if err := s.StartContainer(ctx); err != nil {
 				return err
-			}
-
-			if s.Image.Repository == tn.Chain.Config().CometMock.Image.Repository {
-				hostPorts, err := s.containerLifecycle.GetHostPorts(ctx, cometMockRawPort+"/tcp")
-				if err != nil {
-					return err
-				}
-
-				rpcOverrideAddr = hostPorts[0]
-				tn.cometHostname = s.HostName()
-
-				tn.log.Info(
-					"Using comet mock as RPC override",
-					zap.String("RPC host port override", rpcOverrideAddr),
-					zap.String("comet mock hostname", tn.cometHostname),
-				)
 			}
 		}
 	}

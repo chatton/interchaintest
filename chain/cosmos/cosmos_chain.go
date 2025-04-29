@@ -3,7 +3,6 @@ package cosmos
 import (
 	"bytes"
 	"context"
-	"encoding/hex"
 	"fmt"
 	"io"
 	"math"
@@ -30,7 +29,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	"github.com/chatton/interchaintest/v1/chain/internal/tendermint"
 	"github.com/chatton/interchaintest/v1/dockerutil"
 	"github.com/chatton/interchaintest/v1/ibc"
 	"github.com/chatton/interchaintest/v1/testutil"
@@ -57,15 +55,6 @@ type Chain struct {
 func NewCosmosChain(testName string, chainConfig ibc.Config, numValidators int, numFullNodes int, log *zap.Logger) *Chain {
 	if chainConfig.EncodingConfig == nil {
 		panic("chain config must have an encoding config set")
-	}
-
-	if chainConfig.UsesCometMock() {
-		if numValidators != 1 {
-			panic(fmt.Sprintf("CometMock only supports 1 validator. Set `NumValidators` to 1 in %s's ChainSpec", chainConfig.Name))
-		}
-		if numFullNodes != 0 {
-			panic(fmt.Sprintf("CometMock only supports 1 validator. Set `NumFullNodes` to 0 in %s's ChainSpec", chainConfig.Name))
-		}
 	}
 
 	registry := codectypes.NewInterfaceRegistry()
@@ -175,10 +164,6 @@ func (c *Chain) Exec(ctx context.Context, cmd []string, env []string) (stdout, s
 
 // Implements Chain interface.
 func (c *Chain) GetRPCAddress() string {
-	if c.Config().UsesCometMock() {
-		return fmt.Sprintf("http://%s:22331", c.GetFullNode().HostnameCometMock())
-	}
-
 	return fmt.Sprintf("http://%s:26657", c.GetFullNode().HostName())
 }
 
@@ -219,6 +204,11 @@ func (c *Chain) GetHostPeerAddress() string {
 // HomeDir implements ibc.Chain.
 func (c *Chain) HomeDir() string {
 	return c.GetFullNode().HomeDir()
+}
+
+// HostHomeDir returns the path to the home dir on the host.
+func (c *Chain) HostHomeDir() string {
+	return c.Nodes()[0].VolumeName
 }
 
 // Implements Chain interface.
@@ -301,70 +291,6 @@ func (c *Chain) SendFundsWithNote(ctx context.Context, keyName string, amount ib
 	return c.GetFullNode().BankSendWithNote(ctx, keyName, amount, note)
 }
 
-// Implements Chain interface.
-func (c *Chain) SendIBCTransfer(
-	ctx context.Context,
-	channelID string,
-	keyName string,
-	amount ibc.WalletAmount,
-	options ibc.TransferOptions,
-) (tx ibc.Tx, _ error) {
-	txHash, err := c.GetFullNode().SendIBCTransfer(ctx, channelID, keyName, amount, options)
-	if err != nil {
-		return tx, fmt.Errorf("send ibc transfer: %w", err)
-	}
-	txResp, err := c.GetTransaction(txHash)
-	if err != nil {
-		return tx, fmt.Errorf("failed to get transaction %s: %w", txHash, err)
-	}
-	if txResp.Code != 0 {
-		return tx, fmt.Errorf("error in transaction (code: %d): %s", txResp.Code, txResp.RawLog)
-	}
-	tx.Height = txResp.Height
-	tx.TxHash = txHash
-	// In cosmos, user is charged for entire gas requested, not the actual gas used.
-	tx.GasSpent = txResp.GasWanted
-
-	const evType = "send_packet"
-	events := txResp.Events
-
-	var (
-		seq, _           = tendermint.AttributeValue(events, evType, "packet_sequence")
-		srcPort, _       = tendermint.AttributeValue(events, evType, "packet_src_port")
-		srcChan, _       = tendermint.AttributeValue(events, evType, "packet_src_channel")
-		dstPort, _       = tendermint.AttributeValue(events, evType, "packet_dst_port")
-		dstChan, _       = tendermint.AttributeValue(events, evType, "packet_dst_channel")
-		timeoutHeight, _ = tendermint.AttributeValue(events, evType, "packet_timeout_height")
-		timeoutTS, _     = tendermint.AttributeValue(events, evType, "packet_timeout_timestamp")
-		dataHex, _       = tendermint.AttributeValue(events, evType, "packet_data_hex")
-	)
-	tx.Packet.SourcePort = srcPort
-	tx.Packet.SourceChannel = srcChan
-	tx.Packet.DestPort = dstPort
-	tx.Packet.DestChannel = dstChan
-	tx.Packet.TimeoutHeight = timeoutHeight
-
-	data, err := hex.DecodeString(dataHex)
-	if err != nil {
-		return tx, fmt.Errorf("malformed data hex %s: %w", dataHex, err)
-	}
-	tx.Packet.Data = data
-
-	seqNum, err := strconv.ParseUint(seq, 10, 64)
-	if err != nil {
-		return tx, fmt.Errorf("invalid packet sequence from events %s: %w", seq, err)
-	}
-	tx.Packet.Sequence = seqNum
-
-	timeoutNano, err := strconv.ParseUint(timeoutTS, 10, 64)
-	if err != nil {
-		return tx, fmt.Errorf("invalid packet timestamp timeout %s: %w", timeoutTS, err)
-	}
-	tx.Packet.TimeoutTimestamp = ibc.Nanoseconds(timeoutNano)
-
-	return tx, nil
-}
-
 // ExportState exports the chain state at specific height.
 // Implements Chain interface.
 func (c *Chain) ExportState(ctx context.Context, height int64) (string, error) {
@@ -434,8 +360,7 @@ func (c *Chain) NewChainNode(
 
 	v, err := cli.VolumeCreate(ctx, volumetypes.CreateOptions{
 		Labels: map[string]string{
-			dockerutil.CleanupLabel: testName,
-
+			dockerutil.CleanupLabel:   testName,
 			dockerutil.NodeOwnerLabel: tn.Name(),
 		},
 	})
@@ -445,10 +370,8 @@ func (c *Chain) NewChainNode(
 	tn.VolumeName = v.Name
 
 	if err := dockerutil.SetVolumeOwner(ctx, dockerutil.VolumeOwnerOptions{
-		Log: c.log,
-
-		Client: cli,
-
+		Log:        c.log,
+		Client:     cli,
 		VolumeName: v.Name,
 		ImageRef:   image.Ref(),
 		TestName:   testName,
@@ -458,52 +381,6 @@ func (c *Chain) NewChainNode(
 	}
 
 	return tn, nil
-}
-
-// NewSidecarProcess constructs a new sidecar process with a docker volume.
-func (c *Chain) NewSidecarProcess(
-	ctx context.Context,
-	preStart bool,
-	processName string,
-	testName string,
-	cli *client.Client,
-	networkID string,
-	image ibc.DockerImage,
-	homeDir string,
-	index int,
-	ports []string,
-	startCmd []string,
-	env []string,
-) error {
-	// Construct the SidecarProcess first so we can access its name.
-	// The SidecarProcess's VolumeName cannot be set until after we create the volume.
-	s := NewSidecar(c.log, false, preStart, c, cli, networkID, processName, testName, image, homeDir, index, ports, startCmd, env)
-
-	v, err := cli.VolumeCreate(ctx, volumetypes.CreateOptions{
-		Labels: map[string]string{
-			dockerutil.CleanupLabel:   testName,
-			dockerutil.NodeOwnerLabel: s.Name(),
-		},
-	})
-	if err != nil {
-		return fmt.Errorf("creating volume for sidecar process: %w", err)
-	}
-	s.VolumeName = v.Name
-
-	if err := dockerutil.SetVolumeOwner(ctx, dockerutil.VolumeOwnerOptions{
-		Log: c.log,
-
-		Client: cli,
-
-		VolumeName: v.Name,
-		ImageRef:   image.Ref(),
-		TestName:   testName,
-		UidGid:     image.UIDGID,
-	}); err != nil {
-		return fmt.Errorf("set volume owner: %w", err)
-	}
-
-	return nil
 }
 
 // creates the test node objects required for bootstrapping tests.
@@ -574,7 +451,7 @@ type ValidatorWithIntPower struct {
 }
 
 // Bootstraps the chain and starts it from genesis.
-func (c *Chain) Start(testName string, ctx context.Context, additionalGenesisWallets ...ibc.WalletAmount) error {
+func (c *Chain) Start(ctx context.Context, additionalGenesisWallets ...ibc.WalletAmount) error {
 	chainCfg := c.Config()
 
 	genesisAmounts := make([][]sdk.Coin, len(c.Validators))
@@ -583,11 +460,6 @@ func (c *Chain) Start(testName string, ctx context.Context, additionalGenesisWal
 	for i := range c.Validators {
 		genesisAmounts[i] = []sdk.Coin{{Amount: sdkmath.NewInt(10_000_000_000_000), Denom: chainCfg.Denom}}
 		genesisSelfDelegation[i] = sdk.Coin{Amount: sdkmath.NewInt(5_000_000), Denom: chainCfg.Denom}
-		if chainCfg.ModifyGenesisAmounts != nil {
-			amount, selfDelegation := chainCfg.ModifyGenesisAmounts(i)
-			genesisAmounts[i] = []sdk.Coin{amount}
-			genesisSelfDelegation[i] = selfDelegation
-		}
 	}
 
 	configFileOverrides := chainCfg.ConfigFileOverrides

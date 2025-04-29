@@ -3,36 +3,10 @@ package interchaintest
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
-
 	"github.com/chatton/interchaintest/v1/ibc"
 	"github.com/moby/moby/client"
 	"go.uber.org/zap"
 )
-
-// CreateLogFile creates a file with name in dir $HOME/.interchaintest/logs/.
-func CreateLogFile(name string) (*os.File, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return nil, fmt.Errorf("user home dir: %w", err)
-	}
-	fpath := filepath.Join(home, ".interchaintest", "logs")
-	err = os.MkdirAll(fpath, 0o755)
-	if err != nil {
-		return nil, fmt.Errorf("mkdirall: %w", err)
-	}
-	return os.Create(filepath.Join(fpath, name))
-}
-
-// DefaultBlockDatabaseFilepath is the default filepath to the sqlite database for tracking blocks and transactions.
-func DefaultBlockDatabaseFilepath() string {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		panic(err)
-	}
-	return filepath.Join(home, ".interchaintest", "databases", "block.db")
-}
 
 // NewChain creates a single chain based on the provided ChainSpec.
 // This is a simpler alternative to using NewBuiltinChainFactory when only a single chain is needed.

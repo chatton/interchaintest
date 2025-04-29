@@ -105,11 +105,6 @@ func (c Config) Clone() Config {
 	return x
 }
 
-func (c Config) UsesCometMock() bool {
-	img := c.CometMock.Image
-	return img.Repository != "" && img.Version != ""
-}
-
 func (c Config) VerifyCoinType() (string, error) {
 	// If coin-type is left blank in the Config,
 	// the Cosmos SDK default of 118 is used.
@@ -148,10 +143,6 @@ func (c Config) MergeChainSpecConfig(other Config) Config {
 
 	if len(other.Images) > 0 {
 		c.Images = append([]DockerImage(nil), other.Images...)
-	}
-
-	if other.UsesCometMock() {
-		c.CometMock = other.CometMock
 	}
 
 	if other.Bin != "" {

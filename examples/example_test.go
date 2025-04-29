@@ -2,6 +2,7 @@ package examples
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/celestiaorg/go-square/v2/share"
 	"github.com/chatton/interchaintest/v1/dockerutil"
@@ -35,7 +36,7 @@ func TestCelestiaChain(t *testing.T) {
 	client, network := interchaintest.DockerSetup(t)
 
 	// Define the number of validators
-	numValidators := 1
+	numValidators := 4
 	numFullNodes := 0
 
 	enc := testutil.MakeTestEncodingConfig(celestiaapp.ModuleEncodingRegisters...)
@@ -47,13 +48,45 @@ func TestCelestiaChain(t *testing.T) {
 		NumValidators: &numValidators,
 		NumFullNodes:  &numFullNodes,
 		Config: ibc.Config{
+			ModifyGenesis: func(config ibc.Config, bytes []byte) ([]byte, error) {
+				var genesis map[string]interface{}
+				if err := json.Unmarshal(bytes, &genesis); err != nil {
+					return nil, err
+				}
+
+				consensus, ok := genesis["consensus"].(map[string]interface{})
+				if !ok {
+					consensus = make(map[string]interface{})
+					genesis["consensus"] = consensus
+				}
+
+				params, ok := consensus["params"].(map[string]interface{})
+				if !ok {
+					params = make(map[string]interface{})
+					consensus["params"] = params
+				}
+
+				version, ok := params["version"].(map[string]interface{})
+				if !ok {
+					version = make(map[string]interface{})
+					params["version"] = version
+				}
+
+				version["app"] = "4" // TODO: hack to set this to 4 for the multiplexer, figure out how to set this a better way.
+
+				patched, err := json.MarshalIndent(genesis, "", "  ")
+				if err != nil {
+					return nil, err
+				}
+				return patched, nil
+			},
 			EncodingConfig:      &enc,
-			AdditionalStartArgs: []string{"--force-no-bbr", "--grpc.enable", "--grpc.address", "0.0.0.0:9090"},
+			AdditionalStartArgs: []string{"--force-no-bbr", "--grpc.enable", "--grpc.address", "0.0.0.0:9090", "--rpc.grpc_laddr=tcp://0.0.0.0:9099"},
 			Type:                "cosmos",
 			ChainID:             "celestia",
 			Images: []ibc.DockerImage{
 				{
-					Repository: "ghcr.io/celestiaorg/celestia-app",
+					Repository: "ghcr.io/celestiaorg/celestia-app-multiplexer",
 					Version:    "v4.0.0-rc1",
 					UIDGID:     "10001:10001",
 				},
@@ -69,8 +102,8 @@ func TestCelestiaChain(t *testing.T) {
 
 	// Start the chain
 	ctx := context.Background()
-	additionalGenesisWallets := []ibc.WalletAmount{}
-	require.NoError(t, celestia.Start(t.Name(), ctx, additionalGenesisWallets...))
+	err = celestia.Start(ctx)
+	require.NoError(t, err)
 
 	// Cleanup resources when the test is done
 	t.Cleanup(func() {
