@@ -56,7 +56,7 @@ type Chain struct {
 
 func NewCosmosChain(testName string, chainConfig ibc.Config, numValidators int, numFullNodes int, log *zap.Logger) *Chain {
 	if chainConfig.EncodingConfig == nil {
-		//panic("chain config must have an encoding config set")
+		panic("chain config must have an encoding config set")
 	}
 
 	if chainConfig.UsesCometMock() {

@@ -2,11 +2,13 @@ package examples
 
 import (
 	"context"
+	"github.com/cosmos/cosmos-sdk/types/module/testutil"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 
+	celestiaapp "github.com/celestiaorg/celestia-app/v4/app"
 	"github.com/chatton/interchaintest/v1"
 	"github.com/chatton/interchaintest/v1/chain/cosmos"
 	"github.com/chatton/interchaintest/v1/ibc"
@@ -29,6 +31,7 @@ func TestCelestiaChain(t *testing.T) {
 	numValidators := 4
 	numFullNodes := 0
 
+	enc := testutil.MakeTestEncodingConfig(celestiaapp.ModuleEncodingRegisters...)
 	// Create a single Celestia chain directly
 	celestia, err := interchaintest.NewChain(logger, t.Name(), client, network, &interchaintest.ChainSpec{
 		Name:          "celestia",
@@ -37,6 +40,7 @@ func TestCelestiaChain(t *testing.T) {
 		NumValidators: &numValidators,
 		NumFullNodes:  &numFullNodes,
 		Config: ibc.Config{
+			EncodingConfig:      &enc,
 			AdditionalStartArgs: []string{"--force-no-bbr"},
 			Type:                "cosmos",
 			ChainID:             "celestia",
