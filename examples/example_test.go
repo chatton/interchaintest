@@ -279,12 +279,11 @@ func TestCelestiaChainStateSync(t *testing.T) {
 
 	createTxSim(t, err, ctx, client, network, logger, celestia, cosmosChain)
 
-	httpClient, err := cosmosChain.Client()
-	require.NoError(t, err, "failed to get node zero client")
+	nodeClient := cosmosChain.Nodes()[0].Client
 
 	initialHeight := int64(0)
 	for i := 0; i < 30; i++ { // Wait up to 30 seconds for the first block
-		status, err := httpClient.Status(ctx)
+		status, err := nodeClient.Status(ctx)
 		if err == nil && status.SyncInfo.LatestBlockHeight > 0 {
 			initialHeight = status.SyncInfo.LatestBlockHeight
 			break
@@ -301,14 +300,14 @@ func TestCelestiaChainStateSync(t *testing.T) {
 	t.Logf("Successfully reached target height %d", targetHeight)
 
 	t.Logf("Gathering state sync parameters")
-	status, err := httpClient.Status(ctx)
+	status, err := nodeClient.Status(ctx)
 	require.NoError(t, err, "failed to get node zero client")
 
 	latestHeight := status.SyncInfo.LatestBlockHeight
 	trustHeight := latestHeight - stateSyncTrustHeightOffset
 	require.Greaterf(t, trustHeight, int64(0), "calculated trust height %d is too low (latest height: %d)", trustHeight, latestHeight)
 
-	trustBlock, err := httpClient.Block(ctx, &trustHeight)
+	trustBlock, err := nodeClient.Block(ctx, &trustHeight)
 	require.NoError(t, err, "failed to get block at trust height %d", trustHeight)
 
 	trustHash := trustBlock.BlockID.Hash.String()
@@ -329,13 +328,15 @@ func TestCelestiaChainStateSync(t *testing.T) {
 	err = cosmosChain.AddFullNodes(ctx, overrides, 1)
 	require.NoError(t, err, "failed to add node")
 
+	stateSyncClient := cosmosChain.FullNodes[0].Client
+
 	startTime := time.Now()
 	for {
 		if time.Since(startTime) > stateSyncTimeout {
 			t.Fatalf("timed out waiting for state sync node to catch up after %v", stateSyncTimeout)
 		}
 
-		status, err := httpClient.Status(ctx)
+		status, err := stateSyncClient.Status(ctx)
 		if err != nil {
 			t.Logf("Failed to get status from state sync node, retrying...: %v", err)
 			time.Sleep(5 * time.Second)
