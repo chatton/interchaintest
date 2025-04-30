@@ -6,7 +6,8 @@ import (
 	"fmt"
 	"github.com/celestiaorg/go-square/v2/share"
 	"github.com/chatton/interchaintest/v1/dockerutil"
-	testutil2 "github.com/chatton/interchaintest/v1/testutil"
+	"github.com/chatton/interchaintest/v1/testutil/toml"
+	"github.com/chatton/interchaintest/v1/testutil/wait"
 	"github.com/cosmos/cosmos-sdk/types/module/testutil"
 	"github.com/docker/docker/api/types"
 	"github.com/moby/moby/client"
@@ -311,7 +312,7 @@ func TestCelestiaChainStateSync(t *testing.T) {
 	targetHeight := initialHeight + blocksToProduce
 	t.Logf("Successfully reached initial height %d", initialHeight)
 
-	require.NoError(t, testutil2.WaitForBlocks(ctx, int(targetHeight), celestia), "failed to wait for target height")
+	require.NoError(t, wait.ForBlocks(ctx, int(targetHeight), celestia), "failed to wait for target height")
 
 	t.Logf("Successfully reached target height %d", targetHeight)
 
@@ -334,7 +335,7 @@ func TestCelestiaChainStateSync(t *testing.T) {
 	t.Logf("RPC servers: %s", rpcServers)
 
 	overrides := map[string]any{}
-	configOverrides := make(testutil2.Toml)
+	configOverrides := make(toml.Toml)
 	configOverrides["state_sync.enable"] = true
 	configOverrides["state_sync.trust_height"] = trustHeight
 	configOverrides["state_sync.trust_hash"] = trustHash

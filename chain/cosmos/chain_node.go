@@ -6,6 +6,8 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"github.com/chatton/interchaintest/v1/testutil/toml"
+	"github.com/chatton/interchaintest/v1/testutil/wait"
 	"hash/fnv"
 	"os"
 	"path"
@@ -38,7 +40,6 @@ import (
 
 	"github.com/chatton/interchaintest/v1/dockerutil"
 	"github.com/chatton/interchaintest/v1/ibc"
-	"github.com/chatton/interchaintest/v1/testutil"
 )
 
 // ChainNode represents a node in the test network that is being created.
@@ -267,12 +268,12 @@ func (tn *ChainNode) HomeDir() string {
 
 // SetTestConfig modifies the config to reasonable values for use within interchaintest.
 func (tn *ChainNode) SetTestConfig(ctx context.Context) error {
-	c := make(testutil.Toml)
+	c := make(toml.Toml)
 
 	// Set Log Level to info
 	c["log_level"] = "info"
 
-	p2p := make(testutil.Toml)
+	p2p := make(toml.Toml)
 
 	// Allow p2p strangeness
 	p2p["allow_duplicate_ip"] = true
@@ -280,7 +281,7 @@ func (tn *ChainNode) SetTestConfig(ctx context.Context) error {
 
 	c["p2p"] = p2p
 
-	consensus := make(testutil.Toml)
+	consensus := make(toml.Toml)
 
 	blockT := (time.Duration(blockTime) * time.Second).String()
 	consensus["timeout_commit"] = blockT
@@ -288,14 +289,14 @@ func (tn *ChainNode) SetTestConfig(ctx context.Context) error {
 
 	c["consensus"] = consensus
 
-	rpc := make(testutil.Toml)
+	rpc := make(toml.Toml)
 
 	// Enable public RPC
 	rpc["laddr"] = "tcp://0.0.0.0:26657"
 	rpc["allowed_origins"] = []string{"*"}
 	c["rpc"] = rpc
 
-	if err := testutil.ModifyTomlConfigFile(
+	if err := toml.ModifyConfigFile(
 		ctx,
 		tn.logger(),
 		tn.DockerClient,
@@ -307,17 +308,17 @@ func (tn *ChainNode) SetTestConfig(ctx context.Context) error {
 		return err
 	}
 
-	a := make(testutil.Toml)
+	a := make(toml.Toml)
 	a["minimum-gas-prices"] = tn.Chain.Config().GasPrices
 
-	grpc := make(testutil.Toml)
+	grpc := make(toml.Toml)
 
 	// Enable public GRPC
 	grpc["address"] = "0.0.0.0:9090"
 
 	a["grpc"] = grpc
 
-	api := make(testutil.Toml)
+	api := make(toml.Toml)
 
 	// Enable public REST API
 	api["enable"] = true
@@ -326,7 +327,7 @@ func (tn *ChainNode) SetTestConfig(ctx context.Context) error {
 
 	a["api"] = api
 
-	return testutil.ModifyTomlConfigFile(
+	return toml.ModifyConfigFile(
 		ctx,
 		tn.logger(),
 		tn.DockerClient,
@@ -339,14 +340,14 @@ func (tn *ChainNode) SetTestConfig(ctx context.Context) error {
 
 // SetPeers modifies the config persistent_peers for a node.
 func (tn *ChainNode) SetPeers(ctx context.Context, peers string) error {
-	c := make(testutil.Toml)
-	p2p := make(testutil.Toml)
+	c := make(toml.Toml)
+	p2p := make(toml.Toml)
 
 	// Set peers
 	p2p["persistent_peers"] = peers
 	c["p2p"] = p2p
 
-	return testutil.ModifyTomlConfigFile(
+	return toml.ModifyConfigFile(
 		ctx,
 		tn.logger(),
 		tn.DockerClient,
@@ -420,7 +421,7 @@ func (tn *ChainNode) ExecTx(ctx context.Context, keyName string, command ...stri
 	if output.Code != 0 {
 		return output.TxHash, fmt.Errorf("transaction failed with code %d: %s", output.Code, output.RawLog)
 	}
-	if err := testutil.WaitForBlocks(ctx, 2, tn); err != nil {
+	if err := wait.ForBlocks(ctx, 2, tn); err != nil {
 		return "", err
 	}
 	// The transaction can at first appear to succeed, but then fail when it's actually included in a block.

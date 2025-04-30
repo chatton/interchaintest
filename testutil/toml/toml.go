@@ -1,4 +1,4 @@
-package testutil
+package toml
 
 import (
 	"bytes"
@@ -16,9 +16,9 @@ import (
 // Toml is used for holding the decoded state of a toml config file.
 type Toml map[string]any
 
-// RecursiveModifyToml will apply toml modifications at the current depth,
+// RecursiveModify will apply toml modifications at the current depth,
 // then recurse for new depths.
-func RecursiveModifyToml(c map[string]any, modifications Toml) error {
+func RecursiveModify(c map[string]any, modifications Toml) error {
 	for key, value := range modifications {
 		if reflect.ValueOf(value).Kind() == reflect.Map {
 			cV, ok := c[key]
@@ -32,7 +32,7 @@ func RecursiveModifyToml(c map[string]any, modifications Toml) error {
 				// if the config does not exist, we should create a blank one to allow creation
 				cVM = make(Toml)
 			}
-			if err := RecursiveModifyToml(cVM, value.(Toml)); err != nil {
+			if err := RecursiveModify(cVM, value.(Toml)); err != nil {
 				return err
 			}
 			c[key] = cVM
@@ -44,8 +44,8 @@ func RecursiveModifyToml(c map[string]any, modifications Toml) error {
 	return nil
 }
 
-// ModifyTomlConfigFile reads, modifies, then overwrites a toml config file, useful for config.toml, app.toml, etc.
-func ModifyTomlConfigFile(
+// ModifyConfigFile reads, modifies, then overwrites a toml config file, useful for config.toml, app.toml, etc.
+func ModifyConfigFile(
 	ctx context.Context,
 	logger *zap.Logger,
 	dockerClient *client.Client,
@@ -65,7 +65,7 @@ func ModifyTomlConfigFile(
 		return fmt.Errorf("failed to unmarshal %s: %w", filePath, err)
 	}
 
-	if err := RecursiveModifyToml(c, modifications); err != nil {
+	if err := RecursiveModify(c, modifications); err != nil {
 		return fmt.Errorf("failed to modify %s: %w", filePath, err)
 	}
 

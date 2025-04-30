@@ -3,6 +3,7 @@ package interchaintest
 import (
 	"context"
 	"fmt"
+	"github.com/chatton/interchaintest/v1/testutil/wait"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -12,7 +13,6 @@ import (
 
 	"github.com/chatton/interchaintest/v1/dockerutil"
 	"github.com/chatton/interchaintest/v1/ibc"
-	"github.com/chatton/interchaintest/v1/testutil"
 )
 
 // GetAndFundTestUserWithMnemonic restores a user using the given mnemonic
@@ -69,7 +69,7 @@ func GetAndFundTestUsers(
 	require.NoError(t, eg.Wait())
 
 	// TODO(nix 05-17-2022): Map with generics once using go 1.18
-	chainHeights := make([]testutil.ChainHeighter, len(chains))
+	chainHeights := make([]wait.ChainHeighter, len(chains))
 	for i := range chains {
 		chainHeights[i] = chains[i]
 	}

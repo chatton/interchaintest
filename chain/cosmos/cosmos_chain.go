@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/chatton/interchaintest/v1/testutil/toml"
+	"github.com/chatton/interchaintest/v1/testutil/wait"
 	"io"
 	"math"
 	"os"
@@ -28,7 +30,6 @@ import (
 
 	"github.com/chatton/interchaintest/v1/dockerutil"
 	"github.com/chatton/interchaintest/v1/ibc"
-	"github.com/chatton/interchaintest/v1/testutil"
 )
 
 var _ ibc.Chain = &Chain{}
@@ -113,11 +114,11 @@ func (c *Chain) AddFullNodes(ctx context.Context, configFileOverrides map[string
 				return err
 			}
 			for configFile, modifiedConfig := range configFileOverrides {
-				modifiedToml, ok := modifiedConfig.(testutil.Toml)
+				modifiedToml, ok := modifiedConfig.(toml.Toml)
 				if !ok {
 					return fmt.Errorf("provided toml override for file %s is of type (%T). Expected (DecodedToml)", configFile, modifiedConfig)
 				}
-				if err := testutil.ModifyTomlConfigFile(
+				if err := toml.ModifyConfigFile(
 					ctx,
 					fn.logger(),
 					fn.DockerClient,
@@ -439,11 +440,11 @@ func (c *Chain) Start(ctx context.Context, additionalGenesisWallets ...ibc.Walle
 				return err
 			}
 			for configFile, modifiedConfig := range configFileOverrides {
-				modifiedToml, ok := modifiedConfig.(testutil.Toml)
+				modifiedToml, ok := modifiedConfig.(toml.Toml)
 				if !ok {
 					return fmt.Errorf("provided toml override for file %s is of type (%T). Expected (DecodedToml)", configFile, modifiedConfig)
 				}
-				if err := testutil.ModifyTomlConfigFile(
+				if err := toml.ModifyConfigFile(
 					ctx,
 					v.logger(),
 					v.DockerClient,
@@ -470,11 +471,11 @@ func (c *Chain) Start(ctx context.Context, additionalGenesisWallets ...ibc.Walle
 				return err
 			}
 			for configFile, modifiedConfig := range configFileOverrides {
-				modifiedToml, ok := modifiedConfig.(testutil.Toml)
+				modifiedToml, ok := modifiedConfig.(toml.Toml)
 				if !ok {
 					return fmt.Errorf("provided toml override for file %s is of type (%T). Expected (DecodedToml)", configFile, modifiedConfig)
 				}
-				if err := testutil.ModifyTomlConfigFile(
+				if err := toml.ModifyConfigFile(
 					ctx,
 					n.logger(),
 					n.DockerClient,
@@ -593,7 +594,7 @@ func (c *Chain) Start(ctx context.Context, additionalGenesisWallets ...ibc.Walle
 	}
 
 	// Wait for blocks before considering the chains "started"
-	return testutil.WaitForBlocks(ctx, 2, c.GetFullNode())
+	return wait.ForBlocks(ctx, 2, c.GetFullNode())
 }
 
 // Height implements ibc.Chain.
