@@ -1,4 +1,4 @@
-package dockerutil
+package internal
 
 import (
 	"context"
@@ -21,7 +21,7 @@ var (
 	hasBusybox      bool
 )
 
-const busyboxRef = "busybox:stable"
+const BusyboxRef = "busybox:stable"
 
 func EnsureBusybox(ctx context.Context, cli *client.Client) error {
 	ensureBusyboxMu.Lock()
@@ -32,7 +32,7 @@ func EnsureBusybox(ctx context.Context, cli *client.Client) error {
 	}
 
 	images, err := cli.ImageList(ctx, dockerimagetypes.ListOptions{
-		Filters: filters.NewArgs(filters.Arg("reference", busyboxRef)),
+		Filters: filters.NewArgs(filters.Arg("reference", BusyboxRef)),
 	})
 	if err != nil {
 		return fmt.Errorf("listing images to check busybox presence: %w", err)
@@ -43,7 +43,7 @@ func EnsureBusybox(ctx context.Context, cli *client.Client) error {
 		return nil
 	}
 
-	rc, err := cli.ImagePull(ctx, busyboxRef, dockerimagetypes.PullOptions{})
+	rc, err := cli.ImagePull(ctx, BusyboxRef, dockerimagetypes.PullOptions{})
 	if err != nil {
 		return err
 	}

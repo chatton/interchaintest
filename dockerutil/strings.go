@@ -1,15 +1,10 @@
 package dockerutil
 
 import (
-	"fmt"
-	"math/rand"
-	"net"
-	"os"
-	"regexp"
-	"runtime"
-
 	"github.com/docker/docker/api/types"
 	"github.com/docker/go-connections/nat"
+	"net"
+	"regexp"
 )
 
 const (
@@ -29,32 +24,6 @@ func GetHostPort(cont types.ContainerJSON, portID string) string {
 	}
 
 	return net.JoinHostPort(m[0].HostIP, m[0].HostPort)
-}
-
-var chars = []byte("abcdefghijklmnopqrstuvwxyz")
-
-// RandLowerCaseLetterString returns a lowercase letter string of given length.
-func RandLowerCaseLetterString(length int) string {
-	b := make([]byte, length)
-	for i := range b {
-		b[i] = chars[rand.Intn(len(chars))]
-	}
-	return string(b)
-}
-
-func GetDockerUserString() string {
-	uid := os.Getuid()
-	var usr string
-	if runtime.GOOS == "darwin" {
-		usr = ""
-	} else {
-		usr = fmt.Sprintf("%d:%d", uid, uid)
-	}
-	return usr
-}
-
-func GetHeighlinerUserString() string {
-	return "1025:1025"
 }
 
 func GetRootUserString() string {

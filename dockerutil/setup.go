@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/chatton/interchaintest/v1/testutil"
 	"math/rand"
 	"net"
 	"os"
@@ -73,7 +74,7 @@ func DockerSetup(t DockerSetupTestingT) (*client.Client, string) {
 	// e.g. if the test was interrupted.
 	DockerCleanup(t, cli)()
 
-	name := fmt.Sprintf("%s-%s", CelestiaDockerPrefix, RandLowerCaseLetterString(8))
+	name := fmt.Sprintf("%s-%s", CelestiaDockerPrefix, random.LowerCaseLetterString(8))
 	octet := uint8(rand.Intn(256))
 	baseSubnet := fmt.Sprintf("172.%d.0.0/16", octet)
 	usedSubnets, err := getUsedSubnets(cli)

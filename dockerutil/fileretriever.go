@@ -4,6 +4,8 @@ import (
 	"archive/tar"
 	"context"
 	"fmt"
+	"github.com/chatton/interchaintest/v1/dockerutil/internal"
+	"github.com/chatton/interchaintest/v1/testutil"
 	"io"
 	"path"
 	"time"
@@ -33,16 +35,16 @@ func NewFileRetriever(log *zap.Logger, cli *client.Client, testName string) *Fil
 func (r *FileRetriever) SingleFileContent(ctx context.Context, volumeName, relPath string) ([]byte, error) {
 	const mountPath = "/mnt/dockervolume"
 
-	if err := EnsureBusybox(ctx, r.cli); err != nil {
+	if err := internal.EnsureBusybox(ctx, r.cli); err != nil {
 		return nil, err
 	}
 
-	containerName := fmt.Sprintf("%s-getfile-%d-%s", CelestiaDockerPrefix, time.Now().UnixNano(), RandLowerCaseLetterString(5))
+	containerName := fmt.Sprintf("%s-getfile-%d-%s", CelestiaDockerPrefix, time.Now().UnixNano(), random.LowerCaseLetterString(5))
 
 	cc, err := r.cli.ContainerCreate(
 		ctx,
 		&container.Config{
-			Image: busyboxRef,
+			Image: internal.BusyboxRef,
 
 			// Use root user to avoid permission issues when reading files from the volume.
 			User: GetRootUserString(),

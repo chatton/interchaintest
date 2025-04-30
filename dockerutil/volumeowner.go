@@ -3,6 +3,8 @@ package dockerutil
 import (
 	"context"
 	"fmt"
+	"github.com/chatton/interchaintest/v1/dockerutil/internal"
+	"github.com/chatton/interchaintest/v1/testutil"
 	"time"
 
 	"github.com/docker/docker/api/types/container"
@@ -31,9 +33,9 @@ func SetVolumeOwner(ctx context.Context, opts VolumeOwnerOptions) error {
 
 	// Start a one-off container to chmod and chown the volume.
 
-	containerName := fmt.Sprintf("%s-volumeowner-%d-%s", CelestiaDockerPrefix, time.Now().UnixNano(), RandLowerCaseLetterString(5))
+	containerName := fmt.Sprintf("%s-volumeowner-%d-%s", CelestiaDockerPrefix, time.Now().UnixNano(), random.LowerCaseLetterString(5))
 
-	if err := EnsureBusybox(ctx, opts.Client); err != nil {
+	if err := internal.EnsureBusybox(ctx, opts.Client); err != nil {
 		return err
 	}
 
@@ -41,8 +43,7 @@ func SetVolumeOwner(ctx context.Context, opts VolumeOwnerOptions) error {
 	cc, err := opts.Client.ContainerCreate(
 		ctx,
 		&container.Config{
-			Image: busyboxRef, // Using busybox image which has chown and chmod.
-
+			Image:      internal.BusyboxRef, // Using busybox image which has chown and chmod.
 			Entrypoint: []string{"sh", "-c"},
 			Cmd: []string{
 				`chown "$2" "$1" && chmod 0700 "$1"`,
@@ -50,10 +51,8 @@ func SetVolumeOwner(ctx context.Context, opts VolumeOwnerOptions) error {
 				mountPath,
 				owner,
 			},
-
 			// Root user so we have permissions to set ownership and mode.
-			User: GetRootUserString(),
-
+			User:   GetRootUserString(),
 			Labels: map[string]string{CleanupLabel: opts.TestName},
 		},
 		&container.HostConfig{

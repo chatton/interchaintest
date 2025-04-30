@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"github.com/chatton/interchaintest/v1/testutil"
 	"github.com/chatton/interchaintest/v1/testutil/toml"
 	"github.com/chatton/interchaintest/v1/testutil/wait"
 	"hash/fnv"
@@ -716,7 +717,7 @@ func (tn *ChainNode) ConsumerAdditionProposal(ctx context.Context, keyName strin
 		return "", err
 	}
 
-	fileName := "proposal_" + dockerutil.RandLowerCaseLetterString(4) + ".json"
+	fileName := "proposal_" + random.LowerCaseLetterString(4) + ".json"
 
 	fw := dockerutil.NewFileWriter(tn.logger(), tn.DockerClient, tn.TestName)
 	if err := fw.WriteFile(ctx, tn.VolumeName, fileName, propBz); err != nil {

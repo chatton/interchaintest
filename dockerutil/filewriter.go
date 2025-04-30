@@ -5,6 +5,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/chatton/interchaintest/v1/dockerutil/internal"
+	"github.com/chatton/interchaintest/v1/testutil"
 	"time"
 
 	"github.com/docker/docker/api/types/container"
@@ -31,16 +33,16 @@ func NewFileWriter(log *zap.Logger, cli *client.Client, testName string) *FileWr
 func (w *FileWriter) WriteFile(ctx context.Context, volumeName, relPath string, content []byte) error {
 	const mountPath = "/mnt/dockervolume"
 
-	if err := EnsureBusybox(ctx, w.cli); err != nil {
+	if err := internal.EnsureBusybox(ctx, w.cli); err != nil {
 		return err
 	}
 
-	containerName := fmt.Sprintf("%s-writefile-%d-%s", CelestiaDockerPrefix, time.Now().UnixNano(), RandLowerCaseLetterString(5))
+	containerName := fmt.Sprintf("%s-writefile-%d-%s", CelestiaDockerPrefix, time.Now().UnixNano(), random.LowerCaseLetterString(5))
 
 	cc, err := w.cli.ContainerCreate(
 		ctx,
 		&container.Config{
-			Image: busyboxRef,
+			Image: internal.BusyboxRef,
 
 			Entrypoint: []string{"sh", "-c"},
 			Cmd: []string{

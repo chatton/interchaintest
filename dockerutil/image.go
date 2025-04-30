@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/chatton/interchaintest/v1/testutil"
 	"io"
 	"strconv"
 	"strings"
@@ -210,7 +211,7 @@ func (image *Image) Start(ctx context.Context, cmd []string, opts ContainerOptio
 	}
 
 	var (
-		containerName = SanitizeContainerName(image.testName + "-" + RandLowerCaseLetterString(6))
+		containerName = SanitizeContainerName(image.testName + "-" + random.LowerCaseLetterString(6))
 		hostName      = CondenseHostName(containerName)
 		logger        = image.log.With(
 			zap.String("command", strings.Join(cmd, " ")),

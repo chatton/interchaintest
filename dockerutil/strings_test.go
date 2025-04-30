@@ -1,6 +1,7 @@
 package dockerutil
 
 import (
+	"github.com/chatton/interchaintest/v1/testutil"
 	"math/rand"
 	"testing"
 
@@ -51,13 +52,13 @@ func TestGetHostPort(t *testing.T) {
 }
 
 func TestRandLowerCaseLetterString(t *testing.T) {
-	require.Empty(t, RandLowerCaseLetterString(0))
+	require.Empty(t, random.LowerCaseLetterString(0))
 
 	rand.Seed(1) // nolint:staticcheck
-	require.Equal(t, "xvlbzgbaicmr", RandLowerCaseLetterString(12))
+	require.Equal(t, "xvlbzgbaicmr", random.LowerCaseLetterString(12))
 
 	rand.Seed(1) // nolint:staticcheck
-	require.Equal(t, "xvlbzgbaicmrajwwhthctcuaxhxkqf", RandLowerCaseLetterString(30))
+	require.Equal(t, "xvlbzgbaicmrajwwhthctcuaxhxkqf", random.LowerCaseLetterString(30))
 }
 
 func TestCondenseHostName(t *testing.T) {

@@ -177,7 +177,7 @@ func (c *ContainerLifecycle) CheckForFailedStart(ctx context.Context, wait time.
 	return nil
 }
 
-// ParsePanicFromText returns a panic line if it exists in the logs so
+// ParseSDKPanicFromText returns a panic line if it exists in the logs so
 // that it can be returned to the user in a proper error message instead of
 // hanging.
 func ParseSDKPanicFromText(text string) error {
