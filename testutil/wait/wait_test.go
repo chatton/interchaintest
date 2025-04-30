@@ -1,4 +1,4 @@
-package testutil
+package wait
 
 import (
 	"context"
@@ -50,7 +50,7 @@ func TestWaitForBlocks(t *testing.T) {
 		)
 
 		const delta = 5
-		err := WaitForBlocks(context.Background(), delta, &chain1, &chain2)
+		err := ForBlocks(context.Background(), delta, &chain1, &chain2)
 
 		require.NoError(t, err)
 		// +1 accounts for initial increment
@@ -62,7 +62,7 @@ func TestWaitForBlocks(t *testing.T) {
 		t.Parallel()
 
 		require.Panics(t, func() {
-			_ = WaitForBlocks(context.Background(), 100)
+			_ = ForBlocks(context.Background(), 100)
 		})
 	})
 
@@ -71,7 +71,7 @@ func TestWaitForBlocks(t *testing.T) {
 
 		errMock := mockChainHeighter{Err: errors.New("boom")}
 		const delta = 1
-		err := WaitForBlocks(context.Background(), delta, &mockChainHeighter{}, &errMock)
+		err := ForBlocks(context.Background(), delta, &mockChainHeighter{}, &errMock)
 
 		require.Error(t, err)
 		require.EqualError(t, err, "boom")
@@ -83,7 +83,7 @@ func TestWaitForBlocks(t *testing.T) {
 		const delta = 1
 		// Set height to -1 because the mock chain auto-increments the height resulting in starting height of 0.
 		chain := &mockChainHeighter{CurHeight: -1}
-		err := WaitForBlocks(context.Background(), delta, chain)
+		err := ForBlocks(context.Background(), delta, chain)
 
 		require.NoError(t, err)
 		// Because 0 is always invalid height, we do not start testing for the delta until height > 0.
@@ -116,7 +116,7 @@ func TestWaitForBlocksUtil(t *testing.T) {
 		},
 	}
 	for _, tc := range testCases {
-		actual := WaitForBlocksUtil(tc.maxBlocks, tc.fn)
+		actual := ForBlocksUtil(tc.maxBlocks, tc.fn)
 		if tc.expected == nil {
 			require.NoError(t, actual)
 		} else {
@@ -140,7 +140,7 @@ func TestWaitForInSync(t *testing.T) {
 			node2                  = mockChainHeighter{CurHeight: startHeightNode2}
 		)
 
-		err := WaitForInSync(context.Background(), &chain, &node1, &node2)
+		err := ForInSync(context.Background(), &chain, &node1, &node2)
 
 		require.NoError(t, err)
 		require.GreaterOrEqual(t, node1.CurHeight, chain.CurHeight)
@@ -155,7 +155,7 @@ func TestWaitForInSync(t *testing.T) {
 			chain                  = mockChainHeighterFixed{CurHeight: startHeightChain}
 		)
 		require.Panics(t, func() {
-			_ = WaitForInSync(context.Background(), &chain)
+			_ = ForInSync(context.Background(), &chain)
 		})
 	})
 
@@ -176,7 +176,7 @@ func TestWaitForInSync(t *testing.T) {
 
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 		defer cancel()
-		err := WaitForInSync(ctx, &chain, &node1, &node2)
+		err := ForInSync(ctx, &chain, &node1, &node2)
 
 		require.Error(t, err)
 	})

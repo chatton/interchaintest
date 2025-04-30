@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/chatton/interchaintest/v1/testutil/wait"
 	"path"
 	"testing"
 	"time"
@@ -17,7 +18,6 @@ import (
 	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
 
 	"github.com/chatton/interchaintest/v1/dockerutil"
-	"github.com/chatton/interchaintest/v1/testutil"
 )
 
 type ClientContextOpt func(clientContext client.Context) client.Context
@@ -216,7 +216,7 @@ func BroadcastTx(ctx context.Context, broadcaster *Broadcaster, broadcastingUser
 		return sdk.TxResponse{}, err
 	}
 
-	err = testutil.WaitForCondition(time.Second*30, time.Second*5, func() (bool, error) {
+	err = wait.ForCondition(ctx, time.Second*30, time.Second*5, func() (bool, error) {
 		var err error
 		txBytes, err = broadcaster.GetTxResponseBytes(ctx, broadcastingUser)
 		if err != nil {
@@ -233,15 +233,15 @@ func BroadcastTx(ctx context.Context, broadcaster *Broadcaster, broadcastingUser
 		return sdk.TxResponse{}, err
 	}
 
-	return getFullyPopulatedResponse(cc, respWithTxHash.TxHash)
+	return getFullyPopulatedResponse(ctx, cc, respWithTxHash.TxHash)
 }
 
 // getFullyPopulatedResponse returns a fully populated sdk.TxResponse.
 // the QueryTx function is periodically called until a tx with the given hash
 // has been included in a block.
-func getFullyPopulatedResponse(cc client.Context, txHash string) (sdk.TxResponse, error) {
+func getFullyPopulatedResponse(ctx context.Context, cc client.Context, txHash string) (sdk.TxResponse, error) {
 	var resp sdk.TxResponse
-	err := testutil.WaitForCondition(time.Second*60, time.Second*5, func() (bool, error) {
+	err := wait.ForCondition(ctx, time.Second*60, time.Second*5, func() (bool, error) {
 		fullyPopulatedTxResp, err := authtx.QueryTx(cc, txHash)
 		if err != nil {
 			return false, nil
