@@ -107,8 +107,8 @@ func TestCelestiaChain(t *testing.T) {
 
 	// Cleanup resources when the test is done
 	t.Cleanup(func() {
-		if err := celestia.(*cosmos.Chain).StopAllNodes(ctx); err != nil {
-			t.Logf("Error stopping chain nodes: %v", err)
+		if err := celestia.Stop(ctx); err != nil {
+			t.Logf("Error stopping chain: %v", err)
 		}
 	})
 
@@ -258,8 +258,8 @@ func TestCelestiaChainStateSync(t *testing.T) {
 
 	// Cleanup resources when the test is done
 	t.Cleanup(func() {
-		if err := celestia.(*cosmos.Chain).StopAllNodes(ctx); err != nil {
-			t.Logf("Error stopping chain nodes: %v", err)
+		if err := celestia.Stop(ctx); err != nil {
+			t.Logf("Error stopping chain: %v", err)
 		}
 	})
 
@@ -282,13 +282,29 @@ func TestCelestiaChainStateSync(t *testing.T) {
 	nodeClient := cosmosChain.Nodes()[0].Client
 
 	initialHeight := int64(0)
-	for i := 0; i < 30; i++ { // Wait up to 30 seconds for the first block
-		status, err := nodeClient.Status(ctx)
+
+	// Use a ticker to periodically check for the initial height
+	heightTicker := time.NewTicker(1 * time.Second)
+	defer heightTicker.Stop()
+
+	heightTimeoutCtx, heightCancel := context.WithTimeout(ctx, 30*time.Second) // Wait up to 30 seconds for the first block
+	defer heightCancel()
+
+	// Check immediately first, then on ticker intervals
+	for {
+		status, err := nodeClient.Status(heightTimeoutCtx)
 		if err == nil && status.SyncInfo.LatestBlockHeight > 0 {
 			initialHeight = status.SyncInfo.LatestBlockHeight
 			break
 		}
-		time.Sleep(1 * time.Second)
+
+		select {
+		case <-heightTicker.C:
+			// Continue the loop
+		case <-heightTimeoutCtx.Done():
+			t.Logf("Timed out waiting for initial height")
+			break
+		}
 	}
 
 	require.Greater(t, initialHeight, int64(0), "failed to get initial height")
@@ -330,17 +346,23 @@ func TestCelestiaChainStateSync(t *testing.T) {
 
 	stateSyncClient := cosmosChain.FullNodes[0].Client
 
-	startTime := time.Now()
-	for {
-		if time.Since(startTime) > stateSyncTimeout {
-			t.Fatalf("timed out waiting for state sync node to catch up after %v", stateSyncTimeout)
-		}
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
 
-		status, err := stateSyncClient.Status(ctx)
+	timeoutCtx, cancel := context.WithTimeout(ctx, stateSyncTimeout)
+	defer cancel()
+
+	// Check immediately first, then on ticker intervals
+	for {
+		status, err := stateSyncClient.Status(timeoutCtx)
 		if err != nil {
 			t.Logf("Failed to get status from state sync node, retrying...: %v", err)
-			time.Sleep(5 * time.Second)
-			continue
+			select {
+			case <-ticker.C:
+				continue
+			case <-timeoutCtx.Done():
+				t.Fatalf("timed out waiting for state sync node to catch up after %v", stateSyncTimeout)
+			}
 		}
 
 		t.Logf("State sync node status: Height=%d, CatchingUp=%t", status.SyncInfo.LatestBlockHeight, status.SyncInfo.CatchingUp)
@@ -349,7 +371,13 @@ func TestCelestiaChainStateSync(t *testing.T) {
 			t.Logf("State sync successful! Node caught up to height %d", status.SyncInfo.LatestBlockHeight)
 			break
 		}
-		time.Sleep(10 * time.Second)
+
+		select {
+		case <-ticker.C:
+			// Continue the loop
+		case <-timeoutCtx.Done():
+			t.Fatalf("timed out waiting for state sync node to catch up after %v", stateSyncTimeout)
+		}
 	}
 }
 

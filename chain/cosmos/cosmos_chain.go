@@ -34,6 +34,8 @@ import (
 	"github.com/chatton/interchaintest/v1/testutil"
 )
 
+var _ ibc.Chain = &Chain{}
+
 // Chain is a local docker testnet for a Cosmos SDK chain.
 // Implements the ibc.Chain interface.
 type Chain struct {
@@ -50,6 +52,10 @@ type Chain struct {
 	log      *zap.Logger
 	keyring  keyring.Keyring
 	findTxMu sync.Mutex
+}
+
+func (c *Chain) Stop(ctx context.Context) error {
+	return c.StopAllNodes(ctx)
 }
 
 func NewCosmosChain(testName string, chainConfig ibc.Config, numValidators int, numFullNodes int, log *zap.Logger) *Chain {

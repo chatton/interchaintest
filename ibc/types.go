@@ -16,11 +16,9 @@ import (
 
 	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/03-connection/types"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module/testutil"
 )
 
-// Chain type constant values, used to determine if a Config is of a certain type.
 const (
 	Cosmos = "cosmos"
 )
@@ -35,8 +33,6 @@ type Config struct {
 	ChainID string `yaml:"chain-id"`
 	// Docker images required for running chain nodes.
 	Images []DockerImage `yaml:"images"`
-	// https://github.com/informalsystems/CometMock usage.
-	CometMock CometMockConfig `yaml:"comet-mock-image"`
 	// Binary to execute for the chain node daemon.
 	Bin string `yaml:"bin"`
 	// Bech32 prefix for chain addresses, e.g. cosmos.
@@ -45,8 +41,6 @@ type Config struct {
 	Denom string `yaml:"denom"`
 	// Coin type
 	CoinType string `default:"118" yaml:"coin-type"`
-	// Key signature algorithm
-	SigningAlgorithm string `default:"secp256k1" yaml:"signing-algorithm"`
 	// Minimum gas prices for sending transactions, in native currency denom.
 	GasPrices string `yaml:"gas-prices"`
 	// Adjustment multiplier for gas fees.
@@ -63,13 +57,12 @@ type Config struct {
 	PreGenesis func(Chain) error
 	// When provided, genesis file contents will be altered before sharing for genesis.
 	ModifyGenesis func(Config, []byte) ([]byte, error)
-	// Modify genesis-amounts for the validator at the given index
-	ModifyGenesisAmounts func(int) (sdk.Coin, sdk.Coin)
 	// Override config parameters for files at filepath.
 	ConfigFileOverrides map[string]any
 	// Non-nil will override the encoding config, used for cosmos chains only.
 	EncodingConfig *testutil.TestEncodingConfig
 	// Required when the chain requires the chain-id field to be populated for certain commands
+	// TODO: this flag seems odd, we should remove it.
 	UsingChainIDFlagCLI bool `yaml:"using-chain-id-flag-cli"`
 	// To avoid port binding conflicts, ports are only exposed on the 0th validator.
 	HostPortOverride map[int]int `yaml:"host-port-override"`
@@ -80,10 +73,6 @@ type Config struct {
 	AdditionalStartArgs []string
 	// Environment variables for chain nodes
 	Env []string
-	// Genesis file contents for the chain
-	// Used if starting from an already populated genesis.json, e.g for hard fork upgrades.
-	// When nil, the chain will generate the number of validators specified in the ChainSpec.
-	Genesis *GenesisConfig
 }
 
 func (c Config) Clone() Config {
@@ -96,11 +85,6 @@ func (c Config) Clone() Config {
 	additionalPorts := make([]string, len(c.ExposeAdditionalPorts))
 	copy(additionalPorts, c.ExposeAdditionalPorts)
 	x.ExposeAdditionalPorts = additionalPorts
-
-	if c.Genesis != nil {
-		genesis := *c.Genesis
-		x.Genesis = &genesis
-	}
 
 	return x
 }
@@ -209,10 +193,6 @@ func (c Config) MergeChainSpecConfig(other Config) Config {
 
 	if len(other.ExposeAdditionalPorts) > 0 {
 		c.ExposeAdditionalPorts = append(c.ExposeAdditionalPorts, other.ExposeAdditionalPorts...)
-	}
-
-	if other.Genesis != nil {
-		c.Genesis = other.Genesis
 	}
 
 	return c

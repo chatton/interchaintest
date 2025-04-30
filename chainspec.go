@@ -150,15 +150,8 @@ func (s *ChainSpec) applyConfigOverrides(cfg ibc.Config) (*ibc.Config, error) {
 	if s.PreGenesis != nil {
 		cfg.PreGenesis = s.PreGenesis
 	}
-	if s.ModifyGenesisAmounts != nil {
-		cfg.ModifyGenesisAmounts = s.ModifyGenesisAmounts
-	}
 	if s.HostPortOverride != nil {
 		cfg.HostPortOverride = s.HostPortOverride
-	}
-
-	if s.Genesis != nil {
-		cfg.Genesis = s.Genesis
 	}
 
 	// Set the version depending on the chain type.
