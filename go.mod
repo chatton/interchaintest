@@ -25,7 +25,7 @@ require (
 	github.com/cometbft/cometbft v0.38.17
 	github.com/cosmos/cosmos-sdk v0.50.13
 	github.com/cosmos/ibc-go/v8 v8.7.0
-	github.com/cosmos/interchain-security/v5 v5.1.1
+	github.com/cosmos/interchain-security/v5 v5.2.0
 	github.com/docker/docker v27.5.1+incompatible
 	github.com/docker/go-connections v0.5.0
 	github.com/google/go-cmp v0.7.0
