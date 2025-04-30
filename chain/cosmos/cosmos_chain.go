@@ -21,15 +21,13 @@ import (
 
 	sdkmath "cosmossdk.io/math"
 
+	"github.com/chatton/interchaintest/dockerutil"
+	"github.com/chatton/interchaintest/ibc"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types" // nolint:staticcheck
-
-	"github.com/chatton/interchaintest/dockerutil"
-	"github.com/chatton/interchaintest/ibc"
 )
 
 var _ ibc.Chain = &Chain{}
@@ -641,16 +639,4 @@ func (c *Chain) VoteOnProposalAllValidators(ctx context.Context, proposalID uint
 		}
 	}
 	return eg.Wait()
-}
-
-// GetTimeoutHeight returns a timeout height of 1000 blocks above the current block height.
-// This function should be used when the timeout is never expected to be reached.
-func (c *Chain) GetTimeoutHeight(ctx context.Context) (clienttypes.Height, error) {
-	height, err := c.Height(ctx)
-	if err != nil {
-		c.log.Error("Failed to get chain height", zap.Error(err))
-		return clienttypes.Height{}, fmt.Errorf("failed to get chain height: %w", err)
-	}
-
-	return clienttypes.NewHeight(clienttypes.ParseChainID(c.Config().ChainID), uint64(height)+1000), nil
 }
