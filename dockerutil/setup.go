@@ -31,11 +31,7 @@ type DockerSetupTestingT interface {
 }
 
 // CleanupLabel is a docker label key targeted by DockerSetup when it cleans up docker resources.
-//
-// "interchaintest" is perhaps a better name. However, for backwards compatibility we preserve the original name of "ibc-test"
-// with the hyphen. Otherwise, we run the risk of causing "container already exists" errors because DockerSetup
-// is unable to clean old resources from docker engine.
-const CleanupLabel = "ibc-test"
+const CleanupLabel = "celestia-test"
 
 // CleanupLabel is the "old" format.
 // Note that any new labels should follow the reverse DNS format suggested at
@@ -43,7 +39,7 @@ const CleanupLabel = "ibc-test"
 
 const (
 	// LabelPrefix is the reverse DNS format "namespace" for interchaintest Docker labels.
-	LabelPrefix = "ventures.strangelove.interchaintest."
+	LabelPrefix = "org.celestia.celestia-test."
 
 	// NodeOwnerLabel indicates the logical node owning a particular object (probably a volume).
 	NodeOwnerLabel = LabelPrefix + "node-owner"
@@ -77,7 +73,7 @@ func DockerSetup(t DockerSetupTestingT) (*client.Client, string) {
 	// e.g. if the test was interrupted.
 	DockerCleanup(t, cli)()
 
-	name := fmt.Sprintf("%s-%s", ICTDockerPrefix, RandLowerCaseLetterString(8))
+	name := fmt.Sprintf("%s-%s", CelestiaDockerPrefix, RandLowerCaseLetterString(8))
 	octet := uint8(rand.Intn(256))
 	baseSubnet := fmt.Sprintf("172.%d.0.0/16", octet)
 	usedSubnets, err := getUsedSubnets(cli)

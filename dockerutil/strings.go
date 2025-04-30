@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	ICTDockerPrefix = "interchaintest"
+	CelestiaDockerPrefix = "celestia-test"
 )
 
 // GetHostPort returns a resource's published port with an address.
