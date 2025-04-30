@@ -16,23 +16,18 @@ import (
 	"time"
 
 	"github.com/avast/retry-go/v4"
-	volumetypes "github.com/docker/docker/api/types/volume"
 	"github.com/docker/go-connections/nat"
 	dockerclient "github.com/moby/moby/client"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	icatypes "github.com/cosmos/ibc-go/v8/modules/apps/27-interchain-accounts/types"
 	ccvclient "github.com/cosmos/interchain-security/v5/x/ccv/provider/client"
 
 	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/codec"
-	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authTx "github.com/cosmos/cosmos-sdk/x/auth/tx"
-	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
 	tmjson "github.com/cometbft/cometbft/libs/json"
@@ -59,9 +54,6 @@ type ChainNode struct {
 	TestName     string
 	Image        ibc.DockerImage
 	preStartNode func(*ChainNode)
-
-	// Additional processes that need to be run on a per-validator basis.
-	Sidecars SidecarProcesses
 
 	lock sync.Mutex
 	log  *zap.Logger
@@ -149,49 +141,6 @@ func (tn *ChainNode) NewClient(addr string) error {
 		return fmt.Errorf("grpc dial: %w", err)
 	}
 	tn.GrpcConn = grpcConn
-
-	return nil
-}
-
-func (tn *ChainNode) NewSidecarProcess(
-	ctx context.Context,
-	preStart bool,
-	processName string,
-	cli *dockerclient.Client,
-	networkID string,
-	image ibc.DockerImage,
-	homeDir string,
-	ports []string,
-	startCmd []string,
-	env []string,
-) error {
-	s := NewSidecar(tn.log, true, preStart, tn.Chain, cli, networkID, processName, tn.TestName, image, homeDir, tn.Index, ports, startCmd, env)
-
-	v, err := cli.VolumeCreate(ctx, volumetypes.CreateOptions{
-		Labels: map[string]string{
-			dockerutil.CleanupLabel:   tn.TestName,
-			dockerutil.NodeOwnerLabel: s.Name(),
-		},
-	})
-	if err != nil {
-		return fmt.Errorf("creating volume for sidecar process: %w", err)
-	}
-	s.VolumeName = v.Name
-
-	if err := dockerutil.SetVolumeOwner(ctx, dockerutil.VolumeOwnerOptions{
-		Log: tn.log,
-
-		Client: cli,
-
-		VolumeName: v.Name,
-		ImageRef:   image.Ref(),
-		TestName:   tn.TestName,
-		UidGid:     image.UIDGID,
-	}); err != nil {
-		return fmt.Errorf("set volume owner: %w", err)
-	}
-
-	tn.Sidecars = append(tn.Sidecars, s)
 
 	return nil
 }
@@ -1015,21 +964,6 @@ func (tn *ChainNode) CreateNodeContainer(ctx context.Context) error {
 
 func (tn *ChainNode) StartContainer(ctx context.Context) error {
 	rpcOverrideAddr := ""
-
-	for _, s := range tn.Sidecars {
-		err := s.containerLifecycle.Running(ctx)
-
-		if s.preStart && err != nil {
-			if err := s.CreateContainer(ctx); err != nil {
-				return err
-			}
-
-			if err := s.StartContainer(ctx); err != nil {
-				return err
-			}
-		}
-	}
-
 	if tn.preStartNode != nil {
 		tn.preStartNode(tn)
 	}
@@ -1070,39 +1004,7 @@ func (tn *ChainNode) StartContainer(ctx context.Context) error {
 	}, retry.Context(ctx), retry.Attempts(40), retry.Delay(3*time.Second), retry.DelayType(retry.FixedDelay))
 }
 
-func (tn *ChainNode) PauseContainer(ctx context.Context) error {
-	for _, s := range tn.Sidecars {
-		if err := s.PauseContainer(ctx); err != nil {
-			return err
-		}
-	}
-	return tn.containerLifecycle.PauseContainer(ctx)
-}
-
-func (tn *ChainNode) UnpauseContainer(ctx context.Context) error {
-	for _, s := range tn.Sidecars {
-		if err := s.UnpauseContainer(ctx); err != nil {
-			return err
-		}
-	}
-	return tn.containerLifecycle.UnpauseContainer(ctx)
-}
-
-func (tn *ChainNode) StopContainer(ctx context.Context) error {
-	for _, s := range tn.Sidecars {
-		if err := s.StopContainer(ctx); err != nil {
-			return err
-		}
-	}
-	return tn.containerLifecycle.StopContainer(ctx)
-}
-
 func (tn *ChainNode) RemoveContainer(ctx context.Context) error {
-	for _, s := range tn.Sidecars {
-		if err := s.RemoveContainer(ctx); err != nil {
-			return err
-		}
-	}
 	return tn.containerLifecycle.RemoveContainer(ctx)
 }
 
@@ -1257,74 +1159,6 @@ func (tn *ChainNode) logger() *zap.Logger {
 		zap.String("chain_id", tn.Chain.Config().ChainID),
 		zap.String("test", tn.TestName),
 	)
-}
-
-// RegisterICA will attempt to register an interchain account on the counterparty chain.
-func (tn *ChainNode) RegisterICA(ctx context.Context, keyName, connectionID string) (string, error) {
-	return tn.ExecTx(ctx, keyName,
-		"interchain-accounts", "controller", "register", connectionID,
-	)
-}
-
-// QueryICA will query for an interchain account controlled by the specified address on the counterparty chain.
-func (tn *ChainNode) QueryICA(ctx context.Context, connectionID, address string) (string, error) {
-	stdout, _, err := tn.ExecQuery(ctx,
-		"interchain-accounts", "controller", "interchain-account", address, connectionID,
-	)
-	if err != nil {
-		return "", err
-	}
-
-	// at this point stdout should look like this:
-	// address: cosmos1p76n3mnanllea4d3av0v0e42tjj03cae06xq8fwn9at587rqp23qvxsv0j
-	// we split the string at the : and then just grab the address before returning.
-	parts := strings.SplitN(string(stdout), ":", 2)
-	if len(parts) < 2 {
-		return "", fmt.Errorf("malformed stdout from command: %s", stdout)
-	}
-	return strings.TrimSpace(parts[1]), nil
-}
-
-// SendICATx sends an interchain account transaction for a specified address and sends it to the specified
-// interchain account.
-func (tn *ChainNode) SendICATx(ctx context.Context, keyName, connectionID string, registry codectypes.InterfaceRegistry, msgs []sdk.Msg, icaTxMemo string, encoding string) (string, error) {
-	cdc := codec.NewProtoCodec(registry)
-	icaPacketDataBytes, err := icatypes.SerializeCosmosTx(cdc, msgs, encoding)
-	if err != nil {
-		return "", err
-	}
-
-	icaPacketData := icatypes.InterchainAccountPacketData{
-		Type: icatypes.EXECUTE_TX,
-		Data: icaPacketDataBytes,
-		Memo: icaTxMemo,
-	}
-
-	if err := icaPacketData.ValidateBasic(); err != nil {
-		return "", err
-	}
-
-	icaPacketBytes, err := cdc.MarshalJSON(&icaPacketData)
-	if err != nil {
-		return "", err
-	}
-
-	return tn.ExecTx(ctx, keyName, "interchain-accounts", "controller", "send-tx", connectionID, string(icaPacketBytes))
-}
-
-// SendICABankTransfer builds a bank transfer message for a specified address and sends it to the specified
-// interchain account.
-func (tn *ChainNode) SendICABankTransfer(ctx context.Context, connectionID, fromAddr string, amount ibc.WalletAmount) error {
-	fromAddress := sdk.MustAccAddressFromBech32(fromAddr)
-	toAddress := sdk.MustAccAddressFromBech32(amount.Address)
-	coin := sdk.NewCoin(amount.Denom, amount.Amount)
-	msg := banktypes.NewMsgSend(fromAddress, toAddress, sdk.NewCoins(coin))
-	msgs := []sdk.Msg{msg}
-
-	ir := tn.Chain.Config().EncodingConfig.InterfaceRegistry
-	icaTxMemo := "ica bank transfer"
-	_, err := tn.SendICATx(ctx, fromAddr, connectionID, ir, msgs, icaTxMemo, "proto3")
-	return err
 }
 
 // GetHostAddress returns the host-accessible url for a port in the container.

@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// CopyFile copies a file from src to dst.
 func CopyFile(src, dst string) (int64, error) {
 	sourceFileStat, err := os.Stat(src)
 	if err != nil {
@@ -41,6 +42,7 @@ func CopyFile(src, dst string) (int64, error) {
 	return nBytes, err
 }
 
+// CopyCoverageFromContainer copies the coverage files from the given container to the host.
 func CopyCoverageFromContainer(ctx context.Context, t *testing.T, client *client.Client, containerID string, internalGoCoverDir string, extHostGoCoverDir string) {
 	t.Helper()
 

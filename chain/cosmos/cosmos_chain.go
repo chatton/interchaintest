@@ -19,15 +19,12 @@ import (
 
 	sdkmath "cosmossdk.io/math"
 
-	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types" // nolint:staticcheck
-	chanTypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
-
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
-	"github.com/cosmos/cosmos-sdk/crypto/hd"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types" // nolint:staticcheck
 
 	"github.com/chatton/interchaintest/v1/dockerutil"
 	"github.com/chatton/interchaintest/v1/ibc"
@@ -52,10 +49,6 @@ type Chain struct {
 	log      *zap.Logger
 	keyring  keyring.Keyring
 	findTxMu sync.Mutex
-}
-
-func (c *Chain) Stop(ctx context.Context) error {
-	return c.StopAllNodes(ctx)
 }
 
 func NewCosmosChain(testName string, chainConfig ibc.Config, numValidators int, numFullNodes int, log *zap.Logger) *Chain {
@@ -259,42 +252,9 @@ func (c *Chain) BuildWallet(ctx context.Context, keyName string, mnemonic string
 	return NewWallet(keyName, addrBytes, mnemonic, c.cfg), nil
 }
 
-// BuildRelayerWallet will return a Cosmos wallet populated with the mnemonic so that the wallet can
-// be restored in the relayer node using the mnemonic. After it is built, that address is included in
-// genesis with some funds.
-func (c *Chain) BuildRelayerWallet(ctx context.Context, keyName string) (ibc.Wallet, error) {
-	coinType, err := strconv.ParseUint(c.cfg.CoinType, 10, 32)
-	if err != nil {
-		return nil, fmt.Errorf("invalid coin type: %w", err)
-	}
-
-	info, mnemonic, err := c.keyring.NewMnemonic(
-		keyName,
-		keyring.English,
-		hd.CreateHDPath(uint32(coinType), 0, 0).String(),
-		"", // Empty passphrase.
-		hd.Secp256k1,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create mnemonic: %w", err)
-	}
-
-	addrBytes, err := info.GetAddress()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get address: %w", err)
-	}
-
-	return NewWallet(keyName, addrBytes, mnemonic, c.cfg), nil
-}
-
 // Implements Chain interface.
 func (c *Chain) SendFunds(ctx context.Context, keyName string, amount ibc.WalletAmount) error {
 	return c.GetFullNode().BankSend(ctx, keyName, amount)
-}
-
-// Implements Chain interface.
-func (c *Chain) SendFundsWithNote(ctx context.Context, keyName string, amount ibc.WalletAmount, note string) (string, error) {
-	return c.GetFullNode().BankSendWithNote(ctx, keyName, amount, note)
 }
 
 // ExportState exports the chain state at specific height.
@@ -641,77 +601,11 @@ func (c *Chain) Height(ctx context.Context) (int64, error) {
 	return c.GetFullNode().Height(ctx)
 }
 
-// Acknowledgements implements ibc.Chain, returning all acknowledgments in block at height.
-func (c *Chain) Acknowledgements(ctx context.Context, height int64) ([]ibc.PacketAcknowledgement, error) {
-	var acks []*chanTypes.MsgAcknowledgement
-	err := RangeBlockMessages(ctx, c.cfg.EncodingConfig.InterfaceRegistry, c.GetFullNode().Client, height, func(msg sdk.Msg) bool {
-		found, ok := msg.(*chanTypes.MsgAcknowledgement)
-		if ok {
-			acks = append(acks, found)
-		}
-		return false
-	})
-	if err != nil {
-		return nil, fmt.Errorf("find acknowledgements at height %d: %w", height, err)
-	}
-	ibcAcks := make([]ibc.PacketAcknowledgement, len(acks))
-	for i, ack := range acks {
-		ibcAcks[i] = ibc.PacketAcknowledgement{
-			Acknowledgement: ack.Acknowledgement,
-			Packet: ibc.Packet{
-				Sequence:         ack.Packet.Sequence,
-				SourcePort:       ack.Packet.SourcePort,
-				SourceChannel:    ack.Packet.SourceChannel,
-				DestPort:         ack.Packet.DestinationPort,
-				DestChannel:      ack.Packet.DestinationChannel,
-				Data:             ack.Packet.Data,
-				TimeoutHeight:    ack.Packet.TimeoutHeight.String(),
-				TimeoutTimestamp: ibc.Nanoseconds(ack.Packet.TimeoutTimestamp),
-			},
-		}
-	}
-	return ibcAcks, nil
-}
-
-// Timeouts implements ibc.Chain, returning all timeouts in block at height.
-func (c *Chain) Timeouts(ctx context.Context, height int64) ([]ibc.PacketTimeout, error) {
-	var timeouts []*chanTypes.MsgTimeout
-	err := RangeBlockMessages(ctx, c.cfg.EncodingConfig.InterfaceRegistry, c.GetFullNode().Client, height, func(msg sdk.Msg) bool {
-		found, ok := msg.(*chanTypes.MsgTimeout)
-		if ok {
-			timeouts = append(timeouts, found)
-		}
-		return false
-	})
-	if err != nil {
-		return nil, fmt.Errorf("find timeouts at height %d: %w", height, err)
-	}
-	ibcTimeouts := make([]ibc.PacketTimeout, len(timeouts))
-	for i, ack := range timeouts {
-		ibcTimeouts[i] = ibc.PacketTimeout{
-			Packet: ibc.Packet{
-				Sequence:         ack.Packet.Sequence,
-				SourcePort:       ack.Packet.SourcePort,
-				SourceChannel:    ack.Packet.SourceChannel,
-				DestPort:         ack.Packet.DestinationPort,
-				DestChannel:      ack.Packet.DestinationChannel,
-				Data:             ack.Packet.Data,
-				TimeoutHeight:    ack.Packet.TimeoutHeight.String(),
-				TimeoutTimestamp: ibc.Nanoseconds(ack.Packet.TimeoutTimestamp),
-			},
-		}
-	}
-	return ibcTimeouts, nil
-}
-
-// StopAllNodes stops and removes all long running containers (validators and full nodes).
-func (c *Chain) StopAllNodes(ctx context.Context) error {
+// Stop stops and removes all long running containers (validators and full nodes).
+func (c *Chain) Stop(ctx context.Context) error {
 	var eg errgroup.Group
 	for _, n := range c.Nodes() {
 		eg.Go(func() error {
-			if err := n.StopContainer(ctx); err != nil {
-				return err
-			}
 			return n.RemoveContainer(ctx)
 		})
 	}

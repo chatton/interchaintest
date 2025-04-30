@@ -64,9 +64,6 @@ type Chain interface {
 	// SendFunds sends funds to a wallet from a user account.
 	SendFunds(ctx context.Context, keyName string, amount WalletAmount) error
 
-	// SendFundsWithNote sends funds to a wallet from a user account with a note/memo
-	SendFundsWithNote(ctx context.Context, keyName string, amount WalletAmount, note string) (string, error)
-
 	// Height returns the current block height or an error if unable to get current height.
 	Height(ctx context.Context) (int64, error)
 
