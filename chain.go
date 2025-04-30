@@ -3,7 +3,7 @@ package interchaintest
 import (
 	"context"
 	"fmt"
-	"github.com/chatton/interchaintest/v1/ibc"
+	"github.com/chatton/interchaintest/ibc"
 	"github.com/moby/moby/client"
 	"go.uber.org/zap"
 )

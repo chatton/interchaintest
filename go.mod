@@ -1,4 +1,4 @@
-module github.com/chatton/interchaintest/v1
+module github.com/chatton/interchaintest
 
 go 1.23.6
 
@@ -21,21 +21,18 @@ require (
 	github.com/BurntSushi/toml v1.4.0
 	github.com/avast/retry-go/v4 v4.5.1
 	github.com/celestiaorg/celestia-app/v4 v4.0.0-rc1
+	github.com/celestiaorg/go-square/v2 v2.2.0
 	github.com/cometbft/cometbft v0.38.17
 	github.com/cosmos/cosmos-sdk v0.50.13
 	github.com/cosmos/ibc-go/v8 v8.7.0
 	github.com/cosmos/interchain-security/v5 v5.1.1
-	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/docker/docker v27.5.1+incompatible
 	github.com/docker/go-connections v0.5.0
 	github.com/google/go-cmp v0.7.0
-	github.com/icza/dyno v0.0.0-20220812133438-f0b6f8a18845
 	github.com/moby/moby v27.5.1+incompatible
-	github.com/pelletier/go-toml v1.9.5
 	github.com/stretchr/testify v1.10.0
 	go.uber.org/multierr v1.11.0
 	go.uber.org/zap v1.27.0
-	golang.org/x/mod v0.24.0
 	golang.org/x/sync v0.12.0
 	golang.org/x/tools v0.31.0
 	google.golang.org/grpc v1.72.0
@@ -98,7 +95,6 @@ require (
 	github.com/bits-and-blooms/bitset v1.17.0 // indirect
 	github.com/bytedance/sonic v1.13.1 // indirect
 	github.com/bytedance/sonic/loader v0.2.4 // indirect
-	github.com/celestiaorg/go-square/v2 v2.2.0 // indirect
 	github.com/celestiaorg/merkletree v0.0.0-20210714075610-a84dc3ddbbe4 // indirect
 	github.com/celestiaorg/nmt v0.23.0 // indirect
 	github.com/celestiaorg/rsmt2d v0.14.0 // indirect
@@ -129,6 +125,7 @@ require (
 	github.com/cosmos/ics23/go v0.11.0 // indirect
 	github.com/cosmos/ledger-cosmos-go v0.14.0 // indirect
 	github.com/danieljoos/wincred v1.2.1 // indirect
+	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.3.0 // indirect
 	github.com/desertbit/timer v1.0.1 // indirect
 	github.com/dgraph-io/badger/v4 v4.5.1 // indirect
@@ -266,6 +263,7 @@ require (
 	golang.org/x/arch v0.15.0 // indirect
 	golang.org/x/crypto v0.36.0 // indirect
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394 // indirect
+	golang.org/x/mod v0.24.0 // indirect
 	golang.org/x/net v0.38.0 // indirect
 	golang.org/x/oauth2 v0.26.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect

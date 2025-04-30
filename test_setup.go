@@ -3,7 +3,7 @@ package interchaintest
 import (
 	"github.com/moby/moby/client"
 
-	"github.com/chatton/interchaintest/v1/dockerutil"
+	"github.com/chatton/interchaintest/dockerutil"
 )
 
 const (

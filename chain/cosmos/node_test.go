@@ -8,7 +8,7 @@ import (
 
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
-	"github.com/chatton/interchaintest/v1/chain/cosmos"
+	"github.com/chatton/interchaintest/chain/cosmos"
 )
 
 func TestCondenseMoniker_MiddleDetail(t *testing.T) {

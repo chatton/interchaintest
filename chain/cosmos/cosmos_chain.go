@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/chatton/interchaintest/v1/testutil/toml"
-	"github.com/chatton/interchaintest/v1/testutil/wait"
+	"github.com/chatton/interchaintest/testutil/toml"
+	"github.com/chatton/interchaintest/testutil/wait"
 	"io"
 	"math"
 	"os"
@@ -28,8 +28,8 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types" // nolint:staticcheck
 
-	"github.com/chatton/interchaintest/v1/dockerutil"
-	"github.com/chatton/interchaintest/v1/ibc"
+	"github.com/chatton/interchaintest/dockerutil"
+	"github.com/chatton/interchaintest/ibc"
 )
 
 var _ ibc.Chain = &Chain{}

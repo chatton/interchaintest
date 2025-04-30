@@ -3,8 +3,8 @@ package dockerutil
 import (
 	"context"
 	"fmt"
-	"github.com/chatton/interchaintest/v1/dockerutil/internal"
-	"github.com/chatton/interchaintest/v1/testutil"
+	"github.com/chatton/interchaintest/dockerutil/internal"
+	"github.com/chatton/interchaintest/testutil"
 	"time"
 
 	"github.com/docker/docker/api/types/container"

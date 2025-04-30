@@ -3,8 +3,8 @@ package interchaintest
 import (
 	"context"
 	"fmt"
-	"github.com/chatton/interchaintest/v1/testutil"
-	"github.com/chatton/interchaintest/v1/testutil/wait"
+	"github.com/chatton/interchaintest/testutil"
+	"github.com/chatton/interchaintest/testutil/wait"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -12,7 +12,7 @@ import (
 
 	"cosmossdk.io/math"
 
-	"github.com/chatton/interchaintest/v1/ibc"
+	"github.com/chatton/interchaintest/ibc"
 )
 
 // GetAndFundTestUserWithMnemonic restores a user using the given mnemonic

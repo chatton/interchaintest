@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/chatton/interchaintest/v1/testutil/wait"
+	"github.com/chatton/interchaintest/testutil/wait"
 	"path"
 	"testing"
 	"time"
@@ -17,7 +17,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/tx/signing"
 	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
 
-	"github.com/chatton/interchaintest/v1/dockerutil"
+	"github.com/chatton/interchaintest/dockerutil"
 )
 
 type ClientContextOpt func(clientContext client.Context) client.Context

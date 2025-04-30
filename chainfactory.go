@@ -2,7 +2,7 @@ package interchaintest
 
 import (
 	"fmt"
-	"github.com/chatton/interchaintest/v1/ibc"
+	"github.com/chatton/interchaintest/ibc"
 	"os"
 	"strings"
 	"sync"
@@ -12,7 +12,7 @@ import (
 
 	_ "embed"
 
-	"github.com/chatton/interchaintest/v1/chain/cosmos"
+	"github.com/chatton/interchaintest/chain/cosmos"
 )
 
 // ChainFactory describes how to get chains for tests.

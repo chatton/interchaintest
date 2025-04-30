@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 
-	"github.com/chatton/interchaintest/v1"
-	"github.com/chatton/interchaintest/v1/dockerutil"
+	"github.com/chatton/interchaintest"
+	"github.com/chatton/interchaintest/dockerutil"
 )
 
 func TestFileRetriever(t *testing.T) {

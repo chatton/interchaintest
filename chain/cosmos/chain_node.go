@@ -6,9 +6,9 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"github.com/chatton/interchaintest/v1/testutil"
-	"github.com/chatton/interchaintest/v1/testutil/toml"
-	"github.com/chatton/interchaintest/v1/testutil/wait"
+	"github.com/chatton/interchaintest/testutil"
+	"github.com/chatton/interchaintest/testutil/toml"
+	"github.com/chatton/interchaintest/testutil/wait"
 	"hash/fnv"
 	"os"
 	"path"
@@ -39,8 +39,8 @@ import (
 	rpchttp "github.com/cometbft/cometbft/rpc/client/http"
 	libclient "github.com/cometbft/cometbft/rpc/jsonrpc/client"
 
-	"github.com/chatton/interchaintest/v1/dockerutil"
-	"github.com/chatton/interchaintest/v1/ibc"
+	"github.com/chatton/interchaintest/dockerutil"
+	"github.com/chatton/interchaintest/ibc"
 )
 
 // ChainNode represents a node in the test network that is being created.

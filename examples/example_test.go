@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 	"github.com/celestiaorg/go-square/v2/share"
-	"github.com/chatton/interchaintest/v1/dockerutil"
-	"github.com/chatton/interchaintest/v1/testutil/maps"
-	"github.com/chatton/interchaintest/v1/testutil/toml"
-	"github.com/chatton/interchaintest/v1/testutil/wait"
+	"github.com/chatton/interchaintest/dockerutil"
+	"github.com/chatton/interchaintest/testutil/maps"
+	"github.com/chatton/interchaintest/testutil/toml"
+	"github.com/chatton/interchaintest/testutil/wait"
 	"github.com/cosmos/cosmos-sdk/types/module/testutil"
 	"github.com/docker/docker/api/types"
 	"github.com/moby/moby/client"
@@ -20,9 +20,9 @@ import (
 
 	celestiaapp "github.com/celestiaorg/celestia-app/v4/app"
 	"github.com/celestiaorg/celestia-app/v4/test/util/testnode"
-	"github.com/chatton/interchaintest/v1"
-	"github.com/chatton/interchaintest/v1/chain/cosmos"
-	"github.com/chatton/interchaintest/v1/ibc"
+	"github.com/chatton/interchaintest"
+	"github.com/chatton/interchaintest/chain/cosmos"
+	"github.com/chatton/interchaintest/ibc"
 )
 
 func TestCelestiaChain(t *testing.T) {

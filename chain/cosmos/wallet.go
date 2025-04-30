@@ -3,7 +3,7 @@ package cosmos
 import (
 	"github.com/cosmos/cosmos-sdk/types"
 
-	"github.com/chatton/interchaintest/v1/ibc"
+	"github.com/chatton/interchaintest/ibc"
 )
 
 var (

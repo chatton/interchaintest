@@ -7,8 +7,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 
-	interchaintest "github.com/chatton/interchaintest/v1"
-	"github.com/chatton/interchaintest/v1/ibc"
+	interchaintest "github.com/chatton/interchaintest"
+	"github.com/chatton/interchaintest/ibc"
 )
 
 func TestChainSpec_Config(t *testing.T) {

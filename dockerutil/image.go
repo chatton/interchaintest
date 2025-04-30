@@ -5,7 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/chatton/interchaintest/v1/testutil"
+	"github.com/chatton/interchaintest/testutil"
 	"io"
 	"strconv"
 	"strings"
