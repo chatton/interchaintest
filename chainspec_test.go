@@ -74,12 +74,11 @@ func TestChainSpec_Config(t *testing.T) {
 
 	t.Run("consistently generated config", func(t *testing.T) {
 		s := interchaintest.ChainSpec{
-			Name: "gaia",
-
+			Name:    "gaia",
 			Version: "v7.0.1",
 		}
 
-		cfg1, err := s.Config(zaptest.NewLogger(t))
+		cfg1, err := s.GetConfig(zaptest.NewLogger(t))
 		require.NoError(t, err)
 
 		cfg2, err := s.GetConfig(zaptest.NewLogger(t))
@@ -92,8 +91,7 @@ func TestChainSpec_Config(t *testing.T) {
 	t.Run("name and chain ID generation", func(t *testing.T) {
 		t.Run("same name and chain ID generated when ChainName and ChainID omitted", func(t *testing.T) {
 			s := interchaintest.ChainSpec{
-				Name: "gaia",
-
+				Name:    "gaia",
 				Version: "v7.0.1",
 			}
 

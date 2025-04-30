@@ -2,10 +2,10 @@ package examples
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/celestiaorg/go-square/v2/share"
 	"github.com/chatton/interchaintest/v1/dockerutil"
+	"github.com/chatton/interchaintest/v1/testutil/maps"
 	"github.com/chatton/interchaintest/v1/testutil/toml"
 	"github.com/chatton/interchaintest/v1/testutil/wait"
 	"github.com/cosmos/cosmos-sdk/types/module/testutil"
@@ -50,36 +50,7 @@ func TestCelestiaChain(t *testing.T) {
 		NumFullNodes:  &numFullNodes,
 		Config: ibc.Config{
 			ModifyGenesis: func(config ibc.Config, bytes []byte) ([]byte, error) {
-				var genesis map[string]interface{}
-				if err := json.Unmarshal(bytes, &genesis); err != nil {
-					return nil, err
-				}
-
-				consensus, ok := genesis["consensus"].(map[string]interface{})
-				if !ok {
-					consensus = make(map[string]interface{})
-					genesis["consensus"] = consensus
-				}
-
-				params, ok := consensus["params"].(map[string]interface{})
-				if !ok {
-					params = make(map[string]interface{})
-					consensus["params"] = params
-				}
-
-				version, ok := params["version"].(map[string]interface{})
-				if !ok {
-					version = make(map[string]interface{})
-					params["version"] = version
-				}
-
-				version["app"] = "4" // TODO: hack to set this to 4 for the multiplexer, figure out how to set this a better way.
-
-				patched, err := json.MarshalIndent(genesis, "", "  ")
-				if err != nil {
-					return nil, err
-				}
-				return patched, nil
+				return maps.SetField(bytes, "consensus.params.version.app", "4")
 			},
 			EncodingConfig:      &enc,
 			AdditionalStartArgs: []string{"--force-no-bbr", "--grpc.enable", "--grpc.address", "0.0.0.0:9090", "--rpc.grpc_laddr=tcp://0.0.0.0:9099"},
@@ -201,36 +172,7 @@ func TestCelestiaChainStateSync(t *testing.T) {
 		NumFullNodes:  &numFullNodes,
 		Config: ibc.Config{
 			ModifyGenesis: func(config ibc.Config, bytes []byte) ([]byte, error) {
-				var genesis map[string]interface{}
-				if err := json.Unmarshal(bytes, &genesis); err != nil {
-					return nil, err
-				}
-
-				consensus, ok := genesis["consensus"].(map[string]interface{})
-				if !ok {
-					consensus = make(map[string]interface{})
-					genesis["consensus"] = consensus
-				}
-
-				params, ok := consensus["params"].(map[string]interface{})
-				if !ok {
-					params = make(map[string]interface{})
-					consensus["params"] = params
-				}
-
-				version, ok := params["version"].(map[string]interface{})
-				if !ok {
-					version = make(map[string]interface{})
-					params["version"] = version
-				}
-
-				version["app"] = "4" // TODO: hack to set this to 4 for the multiplexer, figure out how to set this a better way.
-
-				patched, err := json.MarshalIndent(genesis, "", "  ")
-				if err != nil {
-					return nil, err
-				}
-				return patched, nil
+				return maps.SetField(bytes, "consensus.params.version.app", "4")
 			},
 			EncodingConfig:      &enc,
 			AdditionalStartArgs: []string{"--force-no-bbr", "--grpc.enable", "--grpc.address", "0.0.0.0:9090", "--rpc.grpc_laddr=tcp://0.0.0.0:9099"},
