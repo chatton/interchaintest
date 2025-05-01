@@ -2,7 +2,7 @@ package interchaintest
 
 import (
 	"fmt"
-	"github.com/chatton/interchaintest/ibc"
+	"github.com/chatton/interchaintest/chain/types"
 	"os"
 	"strings"
 	"sync"
@@ -23,7 +23,7 @@ type ChainFactory interface {
 	Count() int
 
 	// Chains returns a set of chains.
-	Chains(testName string) ([]ibc.Chain, error)
+	Chains(testName string) ([]types.Chain, error)
 
 	// Name returns a descriptive name of the factory,
 	// indicating all of its chains.
@@ -46,7 +46,7 @@ var embeddedConfiguredChains []byte
 var logConfiguredChainsSourceOnce sync.Once
 
 // initBuiltinChainConfig returns an ibc.Config mapping all configured chains.
-func initBuiltinChainConfig(log *zap.Logger) (map[string]ibc.Config, error) {
+func initBuiltinChainConfig(log *zap.Logger) (map[string]types.Config, error) {
 	var dat []byte
 	var err error
 
@@ -63,7 +63,7 @@ func initBuiltinChainConfig(log *zap.Logger) (map[string]ibc.Config, error) {
 		dat = embeddedConfiguredChains
 	}
 
-	builtinChainConfigs := make(map[string]ibc.Config)
+	builtinChainConfigs := make(map[string]types.Config)
 
 	err = yaml.Unmarshal(dat, &builtinChainConfigs)
 	if err != nil {
@@ -90,8 +90,8 @@ func (f *BuiltinChainFactory) Count() int {
 	return len(f.specs)
 }
 
-func (f *BuiltinChainFactory) Chains(testName string) ([]ibc.Chain, error) {
-	chains := make([]ibc.Chain, len(f.specs))
+func (f *BuiltinChainFactory) Chains(testName string) ([]types.Chain, error) {
+	chains := make([]types.Chain, len(f.specs))
 	for i, s := range f.specs {
 		cfg, err := s.GetConfig(f.log)
 		if err != nil {
@@ -118,7 +118,7 @@ const (
 	defaultNumFullNodes  = 1
 )
 
-func buildChain(log *zap.Logger, testName string, cfg ibc.Config, numValidators, numFullNodes *int) (ibc.Chain, error) {
+func buildChain(log *zap.Logger, testName string, cfg types.Config, numValidators, numFullNodes *int) (types.Chain, error) {
 	nv := defaultNumValidators
 	if numValidators != nil {
 		nv = *numValidators
@@ -129,7 +129,7 @@ func buildChain(log *zap.Logger, testName string, cfg ibc.Config, numValidators,
 	}
 
 	switch cfg.Type {
-	case ibc.Cosmos:
+	case types.Cosmos:
 		return cosmos.NewCosmosChain(testName, cfg, nv, nf, log), nil
 	default:
 		return nil, fmt.Errorf("unexpected error, unknown chain type: %s for chain: %s", cfg.Type, cfg.Name)

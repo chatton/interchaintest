@@ -1,24 +1,23 @@
 package cosmos
 
 import (
+	types2 "github.com/chatton/interchaintest/chain/types"
 	"github.com/cosmos/cosmos-sdk/types"
-
-	"github.com/chatton/interchaintest/ibc"
 )
 
 var (
-	_ ibc.Wallet = &CosmosWallet{}
-	_ User       = &CosmosWallet{}
+	_ types2.Wallet = &CosmosWallet{}
+	_ User          = &CosmosWallet{}
 )
 
 type CosmosWallet struct {
 	mnemonic string
 	address  []byte
 	keyName  string
-	chainCfg ibc.Config
+	chainCfg types2.Config
 }
 
-func NewWallet(keyname string, address []byte, mnemonic string, chainCfg ibc.Config) ibc.Wallet {
+func NewWallet(keyname string, address []byte, mnemonic string, chainCfg types2.Config) types2.Wallet {
 	return &CosmosWallet{
 		mnemonic: mnemonic,
 		address:  address,

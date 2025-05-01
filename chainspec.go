@@ -3,12 +3,12 @@ package interchaintest
 import (
 	"errors"
 	"fmt"
+	"github.com/chatton/interchaintest/chain/types"
 	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
 
-	"github.com/chatton/interchaintest/ibc"
 	"go.uber.org/zap"
 )
 
@@ -32,7 +32,7 @@ type ChainSpec struct {
 	NoHostMount *bool
 
 	// Embedded Config to allow for simple JSON definition of a ChainSpec.
-	ibc.Config
+	types.Config
 
 	// How many validators and how many full nodes to use
 	// when instantiating the chain.
@@ -46,7 +46,7 @@ type ChainSpec struct {
 
 // GetConfig returns the underlying Config,
 // with any overrides applied.
-func (s *ChainSpec) GetConfig(log *zap.Logger) (*ibc.Config, error) {
+func (s *ChainSpec) GetConfig(log *zap.Logger) (*types.Config, error) {
 	if s.Version == "" {
 		// Version must be set at top-level if not set in inlined config.
 		if len(s.Config.Images) == 0 || s.Config.Images[0].Version == "" {
@@ -104,7 +104,7 @@ func (s *ChainSpec) GetConfig(log *zap.Logger) (*ibc.Config, error) {
 
 			return nil, fmt.Errorf("no chain configuration for %s (available chains are: %s)", s.Name, strings.Join(availableChains, ", "))
 		}
-		cfg = ibc.Config{}
+		cfg = types.Config{}
 	}
 
 	cfg = cfg.Clone()
@@ -122,7 +122,7 @@ func (s *ChainSpec) GetConfig(log *zap.Logger) (*ibc.Config, error) {
 	return s.applyConfigOverrides(cfg)
 }
 
-func (s *ChainSpec) applyConfigOverrides(cfg ibc.Config) (*ibc.Config, error) {
+func (s *ChainSpec) applyConfigOverrides(cfg types.Config) (*types.Config, error) {
 	// If no ChainName provided, generate one based on the spec name.
 	cfg.Name = s.ChainName
 	if cfg.Name == "" {

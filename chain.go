@@ -3,7 +3,7 @@ package interchaintest
 import (
 	"context"
 	"fmt"
-	"github.com/chatton/interchaintest/ibc"
+	"github.com/chatton/interchaintest/chain/types"
 	"github.com/moby/moby/client"
 	"go.uber.org/zap"
 )
@@ -25,7 +25,7 @@ import (
 //			// ... other config options
 //		},
 //	})
-func NewChain(log *zap.Logger, testName string, client *client.Client, networkID string, spec *ChainSpec) (ibc.Chain, error) {
+func NewChain(log *zap.Logger, testName string, client *client.Client, networkID string, spec *ChainSpec) (types.Chain, error) {
 	cfg, err := spec.GetConfig(log)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get chain config: %w", err)

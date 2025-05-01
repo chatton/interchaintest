@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"github.com/chatton/interchaintest/chain/types"
 	"github.com/chatton/interchaintest/testutil/toml"
 	"github.com/chatton/interchaintest/testutil/wait"
 	"hash/fnv"
@@ -36,21 +37,20 @@ import (
 	libclient "github.com/cometbft/cometbft/rpc/jsonrpc/client"
 
 	"github.com/chatton/interchaintest/dockerutil"
-	"github.com/chatton/interchaintest/ibc"
 )
 
 // ChainNode represents a node in the test network that is being created.
 type ChainNode struct {
 	VolumeName   string
 	Index        int
-	Chain        ibc.Chain
+	Chain        types.Chain
 	Validator    bool
 	NetworkID    string
 	DockerClient *dockerclient.Client
 	Client       rpcclient.Client
 	GrpcConn     *grpc.ClientConn
 	TestName     string
-	Image        ibc.DockerImage
+	Image        types.DockerImage
 	preStartNode func(*ChainNode)
 
 	lock sync.Mutex
@@ -66,7 +66,7 @@ type ChainNode struct {
 	cometHostname string
 }
 
-func NewChainNode(log *zap.Logger, validator bool, chain *Chain, dockerClient *dockerclient.Client, networkID string, testName string, image ibc.DockerImage, index int) *ChainNode {
+func NewChainNode(log *zap.Logger, validator bool, chain *Chain, dockerClient *dockerclient.Client, networkID string, testName string, image types.DockerImage, index int) *ChainNode {
 	tn := &ChainNode{
 		log: log.With(
 			zap.Bool("validator", validator),
@@ -591,14 +591,14 @@ func (tn *ChainNode) CreateKey(ctx context.Context, name string) error {
 
 // RecoverKey restores a key from a given mnemonic.
 func (tn *ChainNode) RecoverKey(ctx context.Context, keyName, mnemonic string) error {
+	tn.lock.Lock()
+	defer tn.lock.Unlock()
+
 	command := []string{
 		"sh",
 		"-c",
 		fmt.Sprintf(`echo %q | %s keys add %s --recover --keyring-backend %s --coin-type %s --home %s --output json`, mnemonic, tn.Chain.Config().Bin, keyName, keyring.BackendTest, tn.Chain.Config().CoinType, tn.HomeDir()),
 	}
-
-	tn.lock.Lock()
-	defer tn.lock.Unlock()
 
 	_, _, err := tn.Exec(ctx, command, tn.Chain.Config().Env)
 	return err
@@ -606,6 +606,9 @@ func (tn *ChainNode) RecoverKey(ctx context.Context, keyName, mnemonic string) e
 
 // AddGenesisAccount adds a genesis account for each key.
 func (tn *ChainNode) AddGenesisAccount(ctx context.Context, address string, genesisAmount []sdk.Coin) error {
+	tn.lock.Lock()
+	defer tn.lock.Unlock()
+
 	amount := ""
 	for i, coin := range genesisAmount {
 		if i != 0 {
@@ -614,21 +617,12 @@ func (tn *ChainNode) AddGenesisAccount(ctx context.Context, address string, gene
 		amount += fmt.Sprintf("%s%s", coin.Amount.String(), coin.Denom)
 	}
 
-	tn.lock.Lock()
-	defer tn.lock.Unlock()
-
 	// Adding a genesis account should complete instantly,
 	// so use a 1-minute timeout to more quickly detect if Docker has locked up.
 	ctx, cancel := context.WithTimeout(ctx, time.Minute)
 	defer cancel()
 
-	command := []string{"genesis"}
-	command = append(command, "add-genesis-account", address, amount)
-
-	if tn.Chain.Config().UsingChainIDFlagCLI {
-		command = append(command, "--chain-id", tn.Chain.Config().ChainID)
-	}
-
+	command := []string{"genesis", "add-genesis-account", address, amount}
 	_, _, err := tn.ExecBin(ctx, command...)
 
 	return err
@@ -670,43 +664,6 @@ type CosmosTx struct {
 	RawLog string `json:"raw_log"`
 }
 
-func (tn *ChainNode) SendIBCTransfer(
-	ctx context.Context,
-	channelID string,
-	keyName string,
-	amount ibc.WalletAmount,
-	options ibc.TransferOptions,
-) (string, error) {
-	port := "transfer"
-	if options.Port != "" {
-		port = options.Port
-	}
-	command := []string{
-		"ibc-transfer", "transfer", port, channelID,
-		amount.Address, fmt.Sprintf("%s%s", amount.Amount.String(), amount.Denom),
-		"--gas", "auto",
-	}
-	if options.Timeout != nil {
-		if options.Timeout.NanoSeconds > 0 {
-			command = append(command, "--packet-timeout-timestamp", fmt.Sprint(options.Timeout.NanoSeconds))
-		}
-
-		if options.Timeout.Height > 0 {
-			command = append(command, "--packet-timeout-height", fmt.Sprintf("0-%d", options.Timeout.Height))
-		}
-
-		if options.AbsoluteTimeouts {
-			// ibc-go doesn't support relative heights for packet timeouts
-			// so the absolute height flag must be manually set:
-			command = append(command, "--absolute-timeouts")
-		}
-	}
-	if options.Memo != "" {
-		command = append(command, "--memo", options.Memo)
-	}
-	return tn.ExecTx(ctx, keyName, command...)
-}
-
 func (tn *ChainNode) GetTransaction(clientCtx client.Context, txHash string) (*sdk.TxResponse, error) {
 	// Retry because sometimes the tx is not committed to state yet.
 	var txResp *sdk.TxResponse
@@ -722,138 +679,6 @@ func (tn *ChainNode) GetTransaction(clientCtx client.Context, txHash string) (*s
 		retry.LastErrorOnly(true),
 	)
 	return txResp, err
-}
-
-// HasCommand checks if a command in the chain binary is available.
-func (tn *ChainNode) HasCommand(ctx context.Context, command ...string) bool {
-	_, _, err := tn.ExecBin(ctx, command...)
-	if err == nil {
-		return true
-	}
-
-	if strings.Contains(err.Error(), "Error: unknown command") {
-		return false
-	}
-
-	// cmd just needed more arguments, but it is a valid command (ex: appd tx bank send)
-	if strings.Contains(err.Error(), "Error: accepts") {
-		return true
-	}
-
-	return false
-}
-
-// GetBuildInformation returns the build information and dependencies for the chain binary.
-func (tn *ChainNode) GetBuildInformation(ctx context.Context) *BinaryBuildInformation {
-	stdout, _, err := tn.ExecBin(ctx, "version", "--long", "--output", "json")
-	if err != nil {
-		return nil
-	}
-
-	type tempBuildDeps struct {
-		Name             string   `json:"name"`
-		ServerName       string   `json:"server_name"`
-		Version          string   `json:"version"`
-		Commit           string   `json:"commit"`
-		BuildTags        string   `json:"build_tags"`
-		Go               string   `json:"go"`
-		BuildDeps        []string `json:"build_deps"`
-		CosmosSdkVersion string   `json:"cosmos_sdk_version"`
-	}
-
-	var deps tempBuildDeps
-	if err := json.Unmarshal(stdout, &deps); err != nil {
-		return nil
-	}
-
-	getRepoAndVersion := func(dep string) (string, string) {
-		split := strings.Split(dep, "@")
-		return split[0], split[1]
-	}
-
-	var buildDeps []BuildDependency
-	for _, dep := range deps.BuildDeps {
-		var bd BuildDependency
-
-		if strings.Contains(dep, "=>") {
-			// Ex: "github.com/aaa/bbb@v1.2.1 => github.com/ccc/bbb@v1.2.0"
-			split := strings.Split(dep, " => ")
-			main, replacement := split[0], split[1]
-
-			parent, parentVersion := getRepoAndVersion(main)
-			r, rV := getRepoAndVersion(replacement)
-
-			bd = BuildDependency{
-				Parent:             parent,
-				Version:            parentVersion,
-				IsReplacement:      true,
-				Replacement:        r,
-				ReplacementVersion: rV,
-			}
-		} else {
-			// Ex: "github.com/aaa/bbb@v0.0.0-20191008050251-8e49817e8af4"
-			parent, version := getRepoAndVersion(dep)
-
-			bd = BuildDependency{
-				Parent:             parent,
-				Version:            version,
-				IsReplacement:      false,
-				Replacement:        "",
-				ReplacementVersion: "",
-			}
-		}
-
-		buildDeps = append(buildDeps, bd)
-	}
-
-	return &BinaryBuildInformation{
-		BuildDeps:        buildDeps,
-		Name:             deps.Name,
-		ServerName:       deps.ServerName,
-		Version:          deps.Version,
-		Commit:           deps.Commit,
-		BuildTags:        deps.BuildTags,
-		Go:               deps.Go,
-		CosmosSdkVersion: deps.CosmosSdkVersion,
-	}
-}
-
-// QueryClientContractCode performs a query with the contract codeHash as the input and code as the output.
-func (tn *ChainNode) QueryClientContractCode(ctx context.Context, codeHash string, response any) error {
-	stdout, _, err := tn.ExecQuery(ctx, "ibc-wasm", "code", codeHash)
-	if err != nil {
-		return err
-	}
-	err = json.Unmarshal(stdout, response)
-	return err
-}
-
-// QueryParam returns the state and details of a subspace param.
-func (tn *ChainNode) QueryParam(ctx context.Context, subspace, key string) (*ParamChange, error) {
-	stdout, _, err := tn.ExecQuery(ctx, "params", "subspace", subspace, key)
-	if err != nil {
-		return nil, err
-	}
-	var param ParamChange
-	err = json.Unmarshal(stdout, &param)
-	if err != nil {
-		return nil, err
-	}
-	return &param, nil
-}
-
-// QueryBankMetadata returns the bank metadata of a token denomination.
-func (tn *ChainNode) QueryBankMetadata(ctx context.Context, denom string) (*BankMetaData, error) {
-	stdout, _, err := tn.ExecQuery(ctx, "bank", "denom-metadata", "--denom", denom)
-	if err != nil {
-		return nil, err
-	}
-	var meta BankMetaData
-	err = json.Unmarshal(stdout, &meta)
-	if err != nil {
-		return nil, err
-	}
-	return &meta, nil
 }
 
 func (tn *ChainNode) ExportState(ctx context.Context, height int64) (string, error) {
@@ -882,10 +707,7 @@ func (tn *ChainNode) UnsafeResetAll(ctx context.Context) error {
 	tn.lock.Lock()
 	defer tn.lock.Unlock()
 
-	command := []string{tn.Chain.Config().Bin}
-	command = append(command, "comet")
-	command = append(command, "unsafe-reset-all", "--home", tn.HomeDir())
-
+	command := []string{tn.Chain.Config().Bin, "comet", "unsafe-reset-all", "--home", tn.HomeDir()}
 	_, _, err := tn.Exec(ctx, command, tn.Chain.Config().Env)
 	return err
 }
@@ -940,11 +762,6 @@ func (tn *ChainNode) CreateNodeContainer(ctx context.Context) error {
 }
 
 func (tn *ChainNode) StartContainer(ctx context.Context) error {
-	rpcOverrideAddr := ""
-	if tn.preStartNode != nil {
-		tn.preStartNode(tn)
-	}
-
 	if err := tn.containerLifecycle.StartContainer(ctx); err != nil {
 		return err
 	}
@@ -955,11 +772,6 @@ func (tn *ChainNode) StartContainer(ctx context.Context) error {
 		return err
 	}
 	tn.hostRPCPort, tn.hostGRPCPort, tn.hostAPIPort, tn.hostP2PPort = hostPorts[0], hostPorts[1], hostPorts[2], hostPorts[3]
-
-	// Override the default RPC behavior if Comet Mock is being used.
-	if tn.cometHostname != "" {
-		tn.hostRPCPort = rpcOverrideAddr
-	}
 
 	err = tn.NewClient("tcp://" + tn.hostRPCPort)
 	if err != nil {
@@ -985,10 +797,9 @@ func (tn *ChainNode) RemoveContainer(ctx context.Context) error {
 	return tn.containerLifecycle.RemoveContainer(ctx)
 }
 
-// InitValidatorFiles creates the node files and signs a genesis transaction.
+// InitValidatorGenTx creates the node files and signs a genesis transaction.
 func (tn *ChainNode) InitValidatorGenTx(
 	ctx context.Context,
-	chainType *ibc.Config,
 	genesisAmounts []sdk.Coin,
 	genesisSelfDelegation sdk.Coin,
 ) error {
@@ -1059,28 +870,16 @@ func (tn *ChainNode) AccountKeyBech32(ctx context.Context, name string) (string,
 
 // PeerString returns the string for connecting the nodes passed in.
 func (nodes ChainNodes) PeerString(ctx context.Context) string {
-	addrs := make([]string, len(nodes))
-	for i, n := range nodes {
-		id, err := n.NodeID(ctx)
-		if err != nil {
-			// TODO: would this be better to panic?
-			// When would NodeId return an error?
-			break
-		}
-		hostName := n.HostName()
-		ps := fmt.Sprintf("%s@%s:26656", id, hostName)
-		nodes.logger().Info("Peering",
-			zap.String("host_name", hostName),
-			zap.String("peer", ps),
-			zap.String("container", n.Name()),
-		)
-		addrs[i] = ps
-	}
-	return strings.Join(addrs, ",")
+	return nodes.hostString(ctx, "Peer", 26656)
 }
 
 // RPCString returns the string for connecting the nodes passed in.
 func (nodes ChainNodes) RPCString(ctx context.Context) string {
+	return nodes.hostString(ctx, "RPC", 26657)
+}
+
+// hostString generates a comma-separated string of node addresses in the format "id@hostname:port" for the given nodes.
+func (nodes ChainNodes) hostString(ctx context.Context, msg string, port int) string {
 	addrs := make([]string, len(nodes))
 	for i, n := range nodes {
 		id, err := n.NodeID(ctx)
@@ -1090,13 +889,13 @@ func (nodes ChainNodes) RPCString(ctx context.Context) string {
 			break
 		}
 		hostName := n.HostName()
-		ps := fmt.Sprintf("%s@%s:26657", id, hostName)
-		nodes.logger().Info("RPC",
+		addr := fmt.Sprintf("%s@%s:%d", id, hostName, port)
+		nodes.logger().Info(msg,
 			zap.String("host_name", hostName),
-			zap.String("peer", ps),
+			zap.String("address", addr),
 			zap.String("container", n.Name()),
 		)
-		addrs[i] = ps
+		addrs[i] = addr
 	}
 	return strings.Join(addrs, ",")
 }

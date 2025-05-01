@@ -3,6 +3,7 @@ package interchaintest
 import (
 	"context"
 	"fmt"
+	"github.com/chatton/interchaintest/chain/types"
 	"github.com/chatton/interchaintest/testutil"
 	"github.com/chatton/interchaintest/testutil/wait"
 	"testing"
@@ -11,8 +12,6 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"cosmossdk.io/math"
-
-	"github.com/chatton/interchaintest/ibc"
 )
 
 // GetAndFundTestUserWithMnemonic restores a user using the given mnemonic
@@ -22,8 +21,8 @@ func GetAndFundTestUserWithMnemonic(
 	ctx context.Context,
 	keyNamePrefix, mnemonic string,
 	amount math.Int,
-	chain ibc.Chain,
-) (ibc.Wallet, error) {
+	chain types.Chain,
+) (types.Wallet, error) {
 	chainCfg := chain.Config()
 	keyName := fmt.Sprintf("%s-%s-%s", keyNamePrefix, chainCfg.ChainID, random.LowerCaseLetterString(3))
 	user, err := chain.BuildWallet(ctx, keyName, mnemonic)
@@ -31,7 +30,7 @@ func GetAndFundTestUserWithMnemonic(
 		return nil, fmt.Errorf("failed to get source user wallet: %w", err)
 	}
 
-	err = chain.SendFunds(ctx, FaucetAccountKeyName, ibc.WalletAmount{
+	err = chain.SendFunds(ctx, FaucetAccountKeyName, types.WalletAmount{
 		Address: user.FormattedAddress(),
 		Amount:  amount,
 		Denom:   chainCfg.Denom,
@@ -50,11 +49,11 @@ func GetAndFundTestUsers(
 	ctx context.Context,
 	keyNamePrefix string,
 	amount math.Int,
-	chains ...ibc.Chain,
-) []ibc.Wallet {
+	chains ...types.Chain,
+) []types.Wallet {
 	t.Helper()
 
-	users := make([]ibc.Wallet, len(chains))
+	users := make([]types.Wallet, len(chains))
 	var eg errgroup.Group
 	for i, chain := range chains {
 		eg.Go(func() error {

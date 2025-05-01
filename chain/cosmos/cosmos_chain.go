@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/chatton/interchaintest/chain/types"
 	"github.com/chatton/interchaintest/testutil/toml"
 	"github.com/chatton/interchaintest/testutil/wait"
 	"io"
@@ -22,7 +23,6 @@ import (
 	sdkmath "cosmossdk.io/math"
 
 	"github.com/chatton/interchaintest/dockerutil"
-	"github.com/chatton/interchaintest/ibc"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
@@ -30,19 +30,17 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-var _ ibc.Chain = &Chain{}
+var _ types.Chain = &Chain{}
 
 // Chain is a local docker testnet for a Cosmos SDK chain.
-// Implements the ibc.Chain interface.
+// Implements the Chain interface.
 type Chain struct {
 	testName      string
-	cfg           ibc.Config
+	cfg           types.Config
 	NumValidators int
 	numFullNodes  int
 	Validators    ChainNodes
 	FullNodes     ChainNodes
-	Provider      *Chain
-	Consumers     []*Chain
 
 	cdc      *codec.ProtoCodec
 	log      *zap.Logger
@@ -50,7 +48,7 @@ type Chain struct {
 	findTxMu sync.Mutex
 }
 
-func NewCosmosChain(testName string, chainConfig ibc.Config, numValidators int, numFullNodes int, log *zap.Logger) *Chain {
+func NewCosmosChain(testName string, chainConfig types.Config, numValidators int, numFullNodes int, log *zap.Logger) *Chain {
 	if chainConfig.EncodingConfig == nil {
 		panic("chain config must have an encoding config set")
 	}
@@ -138,7 +136,7 @@ func (c *Chain) AddFullNodes(ctx context.Context, configFileOverrides map[string
 }
 
 // Implements Chain interface.
-func (c *Chain) Config() ibc.Config {
+func (c *Chain) Config() types.Config {
 	return c.cfg
 }
 
@@ -232,7 +230,7 @@ func (c *Chain) GetAddress(ctx context.Context, keyName string) ([]byte, error) 
 // BuildWallet will return a Cosmos wallet
 // If mnemonic != "", it will restore using that mnemonic
 // If mnemonic == "", it will create a new key.
-func (c *Chain) BuildWallet(ctx context.Context, keyName string, mnemonic string) (ibc.Wallet, error) {
+func (c *Chain) BuildWallet(ctx context.Context, keyName string, mnemonic string) (types.Wallet, error) {
 	if mnemonic != "" {
 		if err := c.RecoverKey(ctx, keyName, mnemonic); err != nil {
 			return nil, fmt.Errorf("failed to recover key with name %q on chain %s: %w", keyName, c.cfg.Name, err)
@@ -252,7 +250,7 @@ func (c *Chain) BuildWallet(ctx context.Context, keyName string, mnemonic string
 }
 
 // Implements Chain interface.
-func (c *Chain) SendFunds(ctx context.Context, keyName string, amount ibc.WalletAmount) error {
+func (c *Chain) SendFunds(ctx context.Context, keyName string, amount types.WalletAmount) error {
 	return c.GetFullNode().BankSend(ctx, keyName, amount)
 }
 
@@ -315,7 +313,7 @@ func (c *Chain) NewChainNode(
 	testName string,
 	cli *client.Client,
 	networkID string,
-	image ibc.DockerImage,
+	image types.DockerImage,
 	validator bool,
 	index int,
 ) (*ChainNode, error) {
@@ -416,7 +414,7 @@ type ValidatorWithIntPower struct {
 }
 
 // Bootstraps the chain and starts it from genesis.
-func (c *Chain) Start(ctx context.Context, additionalGenesisWallets ...ibc.WalletAmount) error {
+func (c *Chain) Start(ctx context.Context, additionalGenesisWallets ...types.WalletAmount) error {
 	chainCfg := c.Config()
 
 	genesisAmounts := make([][]sdk.Coin, len(c.Validators))
@@ -455,7 +453,7 @@ func (c *Chain) Start(ctx context.Context, additionalGenesisWallets ...ibc.Walle
 				}
 			}
 			if !c.cfg.SkipGenTx {
-				return v.InitValidatorGenTx(ctx, &chainCfg, genesisAmounts[i], genesisSelfDelegation[i])
+				return v.InitValidatorGenTx(ctx, genesisAmounts[i], genesisSelfDelegation[i])
 			}
 			return nil
 		})

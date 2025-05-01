@@ -3,6 +3,7 @@ package dockerutil
 import (
 	"context"
 	"fmt"
+	"github.com/chatton/interchaintest/chain/types"
 	"io"
 	"net"
 	"regexp"
@@ -16,8 +17,6 @@ import (
 	dockerclient "github.com/moby/moby/client"
 	"github.com/moby/moby/errdefs"
 	"go.uber.org/zap"
-
-	"github.com/chatton/interchaintest/ibc"
 )
 
 // Example Go/Cosmos-SDK panic format is `panic: bad Duration: time: invalid duration "bad"\n`.
@@ -43,7 +42,7 @@ func (c *ContainerLifecycle) CreateContainer(
 	ctx context.Context,
 	testName string,
 	networkID string,
-	image ibc.DockerImage,
+	image types.DockerImage,
 	ports nat.PortMap,
 	ipAddr string,
 	volumeBinds []string,

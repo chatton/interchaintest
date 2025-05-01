@@ -1,8 +1,7 @@
-package ibc
+package types
 
 import (
 	"context"
-
 	"github.com/moby/moby/client"
 
 	"cosmossdk.io/math"

@@ -1,4 +1,4 @@
-package ibc
+package types
 
 import (
 	"context"
@@ -59,9 +59,6 @@ type Config struct {
 	ConfigFileOverrides map[string]any
 	// Non-nil will override the encoding config, used for cosmos chains only.
 	EncodingConfig *testutil.TestEncodingConfig
-	// Required when the chain requires the chain-id field to be populated for certain commands
-	// TODO: this flag seems odd, we should remove it.
-	UsingChainIDFlagCLI bool `yaml:"using-chain-id-flag-cli"`
 	// To avoid port binding conflicts, ports are only exposed on the 0th validator.
 	HostPortOverride map[int]int `yaml:"host-port-override"`
 	// ExposeAdditionalPorts exposes each port id to the host on a random port. ex: "8080/tcp"

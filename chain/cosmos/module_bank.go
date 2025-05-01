@@ -3,16 +3,15 @@ package cosmos
 import (
 	"context"
 	"fmt"
+	"github.com/chatton/interchaintest/chain/types"
 
 	sdkmath "cosmossdk.io/math"
 
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
-
-	"github.com/chatton/interchaintest/ibc"
 )
 
 // BankSend sends tokens from one account to another.
-func (tn *ChainNode) BankSend(ctx context.Context, keyName string, amount ibc.WalletAmount) error {
+func (tn *ChainNode) BankSend(ctx context.Context, keyName string, amount types.WalletAmount) error {
 	_, err := tn.ExecTx(ctx,
 		keyName, "bank", "send", keyName,
 		amount.Address, fmt.Sprintf("%s%s", amount.Amount.String(), amount.Denom),

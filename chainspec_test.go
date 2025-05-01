@@ -1,6 +1,7 @@
 package interchaintest_test
 
 import (
+	"github.com/chatton/interchaintest/chain/types"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -8,7 +9,6 @@ import (
 	"go.uber.org/zap/zaptest"
 
 	interchaintest "github.com/chatton/interchaintest"
-	"github.com/chatton/interchaintest/ibc"
 )
 
 func TestChainSpec_Config(t *testing.T) {
@@ -28,11 +28,11 @@ func TestChainSpec_Config(t *testing.T) {
 			Name: "gaia",
 
 			Version: "v7.0.1",
-			Config: ibc.Config{
+			Config: types.Config{
 				Type: "cosmos",
 				// Skip Name, as that is intended to be inherited from ChainName.
 				ChainID: "mychain-123",
-				Images: []ibc.DockerImage{
+				Images: []types.DockerImage{
 					{Repository: "docker.example.com", Version: "latest"},
 				},
 				Bin:            "/bin/true",
@@ -52,11 +52,11 @@ func TestChainSpec_Config(t *testing.T) {
 		s := interchaintest.ChainSpec{
 			ChainName: "mychain",
 
-			Config: ibc.Config{
+			Config: types.Config{
 				Type: "cosmos",
 				// Skip Name, as that is intended to be inherited from ChainName.
 				ChainID: "mychain-123",
-				Images: []ibc.DockerImage{
+				Images: []types.DockerImage{
 					{Repository: "docker.example.com", Version: "latest", UIDGID: "1:1"},
 				},
 				Bin:            "/bin/true",
@@ -124,7 +124,7 @@ func TestChainSpec_Config(t *testing.T) {
 			Version: "v7.0.1",
 
 			ChainName: "g",
-			Config: ibc.Config{
+			Config: types.Config{
 				ChainID: "g-0000",
 			},
 		}
