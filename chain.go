@@ -26,12 +26,8 @@ import (
 //		},
 //	})
 func NewChain(log *zap.Logger, testName string, client *client.Client, networkID string, spec *ChainSpec) (types.Chain, error) {
-	cfg, err := spec.GetConfig(log)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get chain config: %w", err)
-	}
-
-	chain, err := buildChain(log, testName, *cfg, spec.NumValidators, spec.NumFullNodes)
+	cfg := spec.Config
+	chain, err := buildChain(log, testName, cfg, spec.NumValidators, spec.NumFullNodes)
 	if err != nil {
 		return nil, err
 	}

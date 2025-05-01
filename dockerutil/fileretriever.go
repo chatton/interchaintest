@@ -5,7 +5,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/chatton/interchaintest/dockerutil/internal"
-	"github.com/chatton/interchaintest/testutil"
+	"github.com/chatton/interchaintest/testutil/random"
 	"io"
 	"path"
 	"time"

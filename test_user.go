@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/chatton/interchaintest/chain/types"
-	"github.com/chatton/interchaintest/testutil"
+	"github.com/chatton/interchaintest/testutil/random"
 	"github.com/chatton/interchaintest/testutil/wait"
 	"testing"
 

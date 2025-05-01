@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/chatton/interchaintest/testutil"
+	"github.com/chatton/interchaintest/testutil/random"
 	"math/rand"
 	"net"
 	"os"

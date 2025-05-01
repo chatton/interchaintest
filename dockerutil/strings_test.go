@@ -1,7 +1,7 @@
 package dockerutil
 
 import (
-	"github.com/chatton/interchaintest/testutil"
+	"github.com/chatton/interchaintest/testutil/random"
 	"math/rand"
 	"testing"
 
