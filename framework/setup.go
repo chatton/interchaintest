@@ -1,13 +1,9 @@
-package interchaintest
+package framework
 
 import (
 	"github.com/moby/moby/client"
 
 	"github.com/chatton/interchaintest/dockerutil"
-)
-
-const (
-	FaucetAccountKeyName = "faucet"
 )
 
 // DockerSetup returns a new Docker Client and the ID of a configured network, associated with t.

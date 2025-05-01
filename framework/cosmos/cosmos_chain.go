@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/chatton/interchaintest/chain/types"
+	"github.com/chatton/interchaintest/framework/types"
 	"github.com/chatton/interchaintest/testutil/toml"
 	"github.com/chatton/interchaintest/testutil/wait"
 	"io"
@@ -41,11 +41,10 @@ type Chain struct {
 	numFullNodes  int
 	Validators    ChainNodes
 	FullNodes     ChainNodes
-
-	cdc      *codec.ProtoCodec
-	log      *zap.Logger
-	keyring  keyring.Keyring
-	findTxMu sync.Mutex
+	cdc           *codec.ProtoCodec
+	log           *zap.Logger
+	keyring       keyring.Keyring
+	findTxMu      sync.Mutex
 }
 
 func NewCosmosChain(testName string, chainConfig types.Config, numValidators int, numFullNodes int, log *zap.Logger) *Chain {
@@ -319,7 +318,7 @@ func (c *Chain) NewChainNode(
 ) (*ChainNode, error) {
 	// Construct the ChainNode first so we can access its name.
 	// The ChainNode's VolumeName cannot be set until after we create the volume.
-	tn := NewChainNode(c.log, validator, c, cli, networkID, testName, image, index)
+	tn := NewDockerChainNode(c.log, validator, c, cli, networkID, testName, image, index)
 
 	v, err := cli.VolumeCreate(ctx, volumetypes.CreateOptions{
 		Labels: map[string]string{

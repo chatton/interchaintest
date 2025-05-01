@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"path"
 	"reflect"
 	"strconv"
 	"strings"
@@ -17,9 +16,33 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/module/testutil"
 )
 
-const (
-	Cosmos = "cosmos"
-)
+// ChainSpec is a wrapper around a types.Config
+// that allows callers to easily reference one of the built-in chain configs
+// and optionally provide overrides for some settings.
+type ChainSpec struct {
+	// Name is the name of the built-in config to use as a basis for this chain spec.
+	// Required unless every other field is set.
+	Name string
+
+	// ChainName sets the Name of the embedded ibc.Config, i.e. the name of the chain.
+	ChainName string
+
+	// Version of the docker image to use.
+	// Must be set.
+	Version string
+
+	// NoHostMount is a pointers in ChainSpec
+	// so zero-overrides can be detected from omitted overrides.
+	NoHostMount *bool
+
+	// Embedded chain config Config.
+	Config
+
+	// How many validators and how many full nodes to use
+	// when instantiating the chain.
+	// If unspecified, NumValidators defaults to 2 and NumFullNodes defaults to 1.
+	NumValidators, NumFullNodes *int
+}
 
 // Config defines the chain parameters requires to run an interchaintest testnet for a chain.
 type Config struct {
@@ -51,8 +74,6 @@ type Config struct {
 	NoHostMount bool `yaml:"no-host-mount"`
 	// When true, will skip validator gentx flow
 	SkipGenTx bool
-	// When provided, will run before performing gentx and genesis file creation steps for validators.
-	PreGenesis func(Chain) error
 	// When provided, genesis file contents will be altered before sharing for genesis.
 	ModifyGenesis func(Config, []byte) ([]byte, error)
 	// Override config parameters for files at filepath.
@@ -105,144 +126,10 @@ func (c Config) VerifyCoinType() (string, error) {
 	}
 }
 
-func (c Config) MergeChainSpecConfig(other Config) Config {
-	// Make several in-place modifications to c,
-	// which is a value, not a reference,
-	// and return the updated copy.
-
-	if other.Type != "" {
-		c.Type = other.Type
-	}
-
-	// Skip Name, as that is held in ChainSpec.ChainName.
-
-	if other.ChainID != "" {
-		c.ChainID = other.ChainID
-	}
-
-	if len(other.Images) > 0 {
-		c.Images = append([]DockerImage(nil), other.Images...)
-	}
-
-	if other.Bin != "" {
-		c.Bin = other.Bin
-	}
-
-	if other.Bech32Prefix != "" {
-		c.Bech32Prefix = other.Bech32Prefix
-	}
-
-	if other.Denom != "" {
-		c.Denom = other.Denom
-	}
-
-	if other.CoinType != "" {
-		c.CoinType = other.CoinType
-	}
-
-	if other.GasPrices != "" {
-		c.GasPrices = other.GasPrices
-	}
-
-	if other.GasAdjustment > 0 {
-		c.GasAdjustment = other.GasAdjustment
-	}
-
-	if other.Gas != "" {
-		c.Gas = other.Gas
-	}
-
-	if other.TrustingPeriod != "" {
-		c.TrustingPeriod = other.TrustingPeriod
-	}
-
-	// Skip NoHostMount so that false can be distinguished.
-
-	if other.ModifyGenesis != nil {
-		c.ModifyGenesis = other.ModifyGenesis
-	}
-
-	if other.SkipGenTx {
-		c.SkipGenTx = true
-	}
-
-	if other.PreGenesis != nil {
-		c.PreGenesis = other.PreGenesis
-	}
-
-	if other.ConfigFileOverrides != nil {
-		c.ConfigFileOverrides = other.ConfigFileOverrides
-	}
-
-	if other.EncodingConfig != nil {
-		c.EncodingConfig = other.EncodingConfig
-	}
-
-	if other.AdditionalStartArgs != nil {
-		c.AdditionalStartArgs = append(c.AdditionalStartArgs, other.AdditionalStartArgs...)
-	}
-
-	if other.Env != nil {
-		c.Env = append(c.Env, other.Env...)
-	}
-
-	if len(other.ExposeAdditionalPorts) > 0 {
-		c.ExposeAdditionalPorts = append(c.ExposeAdditionalPorts, other.ExposeAdditionalPorts...)
-	}
-
-	return c
-}
-
-// WithCodeCoverage enables Go Code Coverage from the chain node directory.
-func (c *Config) WithCodeCoverage(override ...string) {
-	c.Env = append(c.Env, fmt.Sprintf("GOCOVERDIR=%s", path.Join("/var/cosmos-chain", c.Name)))
-	if len(override) > 0 {
-		c.Env = append(c.Env, override[0])
-	}
-}
-
-// IsFullyConfigured reports whether all required fields have been set on c.
-// It is possible for some fields, such as GasAdjustment and NoHostMount,
-// to be their respective zero values and for IsFullyConfigured to still report true.
-func (c Config) IsFullyConfigured() bool {
-	for _, image := range c.Images {
-		if !image.IsFullyConfigured() {
-			return false
-		}
-	}
-
-	return c.Type != "" &&
-		c.Name != "" &&
-		c.ChainID != "" &&
-		len(c.Images) > 0 &&
-		c.Bin != "" &&
-		c.Bech32Prefix != "" &&
-		c.Denom != "" &&
-		c.GasPrices != "" &&
-		c.TrustingPeriod != ""
-}
-
-// SidecarConfig describes the configuration options for instantiating a new sidecar process.
-type SidecarConfig struct {
-	ProcessName      string
-	Image            DockerImage
-	HomeDir          string
-	Ports            []string
-	StartCmd         []string
-	Env              []string
-	PreStart         bool
-	ValidatorProcess bool
-}
-
 type DockerImage struct {
 	Repository string `json:"repository" yaml:"repository"`
 	Version    string `json:"version" yaml:"version"`
 	UIDGID     string `json:"uid-gid" yaml:"uid-gid"`
-}
-
-type CometMockConfig struct {
-	Image       DockerImage `yaml:"image"`
-	BlockTimeMs int         `yaml:"block-time"`
 }
 
 func NewDockerImage(repository, version, uidGID string) DockerImage {

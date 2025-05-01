@@ -3,7 +3,7 @@ package dockerutil
 import (
 	"context"
 	"fmt"
-	"github.com/chatton/interchaintest/chain/types"
+	"github.com/chatton/interchaintest/framework/types"
 	"io"
 	"net"
 	"regexp"

@@ -1,9 +1,9 @@
-package interchaintest
+package framework
 
 import (
 	"context"
 	"fmt"
-	"github.com/chatton/interchaintest/chain/types"
+	"github.com/chatton/interchaintest/framework/types"
 	"github.com/chatton/interchaintest/testutil/random"
 	"github.com/chatton/interchaintest/testutil/wait"
 	"testing"
@@ -12,6 +12,10 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"cosmossdk.io/math"
+)
+
+const (
+	FaucetAccountKeyName = "faucet"
 )
 
 // GetAndFundTestUserWithMnemonic restores a user using the given mnemonic

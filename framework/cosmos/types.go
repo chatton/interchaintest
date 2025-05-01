@@ -6,10 +6,11 @@ import (
 )
 
 const (
-	ProposalVoteYes        = "yes"
-	ProposalVoteNo         = "no"
-	ProposalVoteNoWithVeto = "noWithVeto"
-	ProposalVoteAbstain    = "abstain"
+	ProposalVoteYes               = "yes"
+	ProposalVoteNo                = "no"
+	ProposalVoteNoWithVeto        = "noWithVeto"
+	ProposalVoteAbstain           = "abstain"
+	Type                   string = "cosmos"
 )
 
 // TxProposalv1 contains chain proposal transaction detail for gov module v1 (sdk v0.46.0+).

@@ -1,7 +1,7 @@
 package cosmos
 
 import (
-	types2 "github.com/chatton/interchaintest/chain/types"
+	types2 "github.com/chatton/interchaintest/framework/types"
 	"github.com/cosmos/cosmos-sdk/types"
 )
 

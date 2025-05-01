@@ -6,7 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"github.com/chatton/interchaintest/chain/types"
+	"github.com/chatton/interchaintest/framework/types"
 	"github.com/chatton/interchaintest/testutil/toml"
 	"github.com/chatton/interchaintest/testutil/wait"
 	"hash/fnv"
@@ -66,15 +66,13 @@ type ChainNode struct {
 	cometHostname string
 }
 
-func NewChainNode(log *zap.Logger, validator bool, chain *Chain, dockerClient *dockerclient.Client, networkID string, testName string, image types.DockerImage, index int) *ChainNode {
+func NewDockerChainNode(log *zap.Logger, validator bool, chain *Chain, dockerClient *dockerclient.Client, networkID string, testName string, image types.DockerImage, index int) *ChainNode {
 	tn := &ChainNode{
 		log: log.With(
 			zap.Bool("validator", validator),
 			zap.Int("i", index),
 		),
-
-		Validator: validator,
-
+		Validator:    validator,
 		Chain:        chain,
 		DockerClient: dockerClient,
 		NetworkID:    networkID,

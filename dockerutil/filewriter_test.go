@@ -2,13 +2,13 @@ package dockerutil_test
 
 import (
 	"context"
+	"github.com/chatton/interchaintest/framework"
 	"testing"
 
 	volumetypes "github.com/docker/docker/api/types/volume"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 
-	"github.com/chatton/interchaintest"
 	"github.com/chatton/interchaintest/dockerutil"
 )
 
@@ -19,7 +19,7 @@ func TestFileWriter(t *testing.T) {
 
 	t.Parallel()
 
-	cli, network := interchaintest.DockerSetup(t)
+	cli, network := framework.DockerSetup(t)
 
 	ctx := context.Background()
 	v, err := cli.VolumeCreate(ctx, volumetypes.CreateOptions{

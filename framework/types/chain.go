@@ -2,9 +2,8 @@ package types
 
 import (
 	"context"
-	"github.com/moby/moby/client"
-
 	"cosmossdk.io/math"
+	"github.com/moby/moby/client"
 )
 
 type Chain interface {
@@ -76,12 +75,4 @@ type Chain interface {
 	// If mnemonic != "", it will restore using that mnemonic
 	// If mnemonic == "", it will create a new key, mnemonic will not be populated
 	BuildWallet(ctx context.Context, keyName string, mnemonic string) (Wallet, error)
-}
-
-// TransferOptions defines the options for an IBC packet transfer.
-type TransferOptions struct {
-	Timeout          *IBCTimeout
-	Memo             string
-	AbsoluteTimeouts bool
-	Port             string // default: transfer
 }

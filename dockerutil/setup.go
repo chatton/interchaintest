@@ -39,7 +39,7 @@ const CleanupLabel = "celestia-test"
 // https://docs.docker.com/config/labels-custom-metadata/#key-format-recommendations.
 
 const (
-	// LabelPrefix is the reverse DNS format "namespace" for interchaintest Docker labels.
+	// LabelPrefix is the reverse DNS format "namespace" for celestia test Docker labels.
 	LabelPrefix = "org.celestia.celestia-test."
 
 	// NodeOwnerLabel indicates the logical node owning a particular object (probably a volume).
