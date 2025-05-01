@@ -3,7 +3,7 @@ package dockerutil
 import (
 	"context"
 	"fmt"
-	"github.com/chatton/interchaintest/dockerutil/internal"
+	dockerinternal "github.com/chatton/interchaintest/internal/docker"
 	"github.com/chatton/interchaintest/testutil/random"
 	"time"
 
@@ -35,7 +35,7 @@ func SetVolumeOwner(ctx context.Context, opts VolumeOwnerOptions) error {
 
 	containerName := fmt.Sprintf("%s-volumeowner-%d-%s", CelestiaDockerPrefix, time.Now().UnixNano(), random.LowerCaseLetterString(5))
 
-	if err := internal.EnsureBusybox(ctx, opts.Client); err != nil {
+	if err := dockerinternal.EnsureBusybox(ctx, opts.Client); err != nil {
 		return err
 	}
 
@@ -43,7 +43,7 @@ func SetVolumeOwner(ctx context.Context, opts VolumeOwnerOptions) error {
 	cc, err := opts.Client.ContainerCreate(
 		ctx,
 		&container.Config{
-			Image:      internal.BusyboxRef, // Using busybox image which has chown and chmod.
+			Image:      dockerinternal.BusyboxRef, // Using busybox image which has chown and chmod.
 			Entrypoint: []string{"sh", "-c"},
 			Cmd: []string{
 				`chown "$2" "$1" && chmod 0700 "$1"`,

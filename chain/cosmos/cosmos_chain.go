@@ -413,7 +413,7 @@ type ValidatorWithIntPower struct {
 	PubKeyBase64 string
 }
 
-// Bootstraps the chain and starts it from genesis.
+// Start initializes the chain by setting up validator nodes and full nodes, configuring genesis, and starting containers.
 func (c *Chain) Start(ctx context.Context, additionalGenesisWallets ...types.WalletAmount) error {
 	chainCfg := c.Config()
 

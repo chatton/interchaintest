@@ -4,7 +4,7 @@ import (
 	"archive/tar"
 	"context"
 	"fmt"
-	"github.com/chatton/interchaintest/dockerutil/internal"
+	internaldocker "github.com/chatton/interchaintest/internal/docker"
 	"github.com/chatton/interchaintest/testutil/random"
 	"io"
 	"path"
@@ -35,7 +35,7 @@ func NewFileRetriever(log *zap.Logger, cli *client.Client, testName string) *Fil
 func (r *FileRetriever) SingleFileContent(ctx context.Context, volumeName, relPath string) ([]byte, error) {
 	const mountPath = "/mnt/dockervolume"
 
-	if err := internal.EnsureBusybox(ctx, r.cli); err != nil {
+	if err := internaldocker.EnsureBusybox(ctx, r.cli); err != nil {
 		return nil, err
 	}
 
@@ -44,7 +44,7 @@ func (r *FileRetriever) SingleFileContent(ctx context.Context, volumeName, relPa
 	cc, err := r.cli.ContainerCreate(
 		ctx,
 		&container.Config{
-			Image: internal.BusyboxRef,
+			Image: internaldocker.BusyboxRef,
 
 			// Use root user to avoid permission issues when reading files from the volume.
 			User: GetRootUserString(),
