@@ -18,7 +18,7 @@ require (
 	cosmossdk.io/math v1.5.3
 	cosmossdk.io/x/upgrade v0.1.4
 	github.com/BurntSushi/toml v1.4.0
-	github.com/avast/retry-go/v4 v4.5.1
+	github.com/avast/retry-go/v4 v4.6.1
 	github.com/cometbft/cometbft v0.38.17
 	github.com/cosmos/cosmos-sdk v0.50.13
 	github.com/docker/docker v27.5.1+incompatible
