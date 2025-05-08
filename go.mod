@@ -21,10 +21,10 @@ require (
 	github.com/avast/retry-go/v4 v4.5.1
 	github.com/cometbft/cometbft v0.38.17
 	github.com/cosmos/cosmos-sdk v0.50.13
-	github.com/docker/docker v27.5.1+incompatible
+	github.com/docker/docker v28.1.1+incompatible
 	github.com/docker/go-connections v0.5.0
 	github.com/google/go-cmp v0.7.0
-	github.com/moby/moby v27.5.1+incompatible
+	github.com/moby/moby v28.1.1+incompatible
 	github.com/stretchr/testify v1.10.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/sync v0.12.0
@@ -151,6 +151,7 @@ require (
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
+	github.com/moby/sys/atomicwriter v0.1.0 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/mtibben/percent v0.2.1 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
